@@ -1,161 +1,681 @@
-<div id="root"></div>
-
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מערכת אישורי הורים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
-  :root{
-    --ink:#1b1b1f; --muted:#6b6b76; --line:#d9d9e0; --bg:#f6f6f4;
-    --accent:#1f5f4e; --accent-soft:#e8f1ee; --danger:#a33;
+:root{
+  --bg:#f4f4f1; --card:#ffffff; --ink:#17181c; --muted:#6c6c78; --line:#dedee6;
+  --accent:#1f5f4e; --accent-ink:#ffffff; --soft:#e7f0ed; --danger:#a8362f; --warn:#8a6a1f; --warnbg:#fdf4dd;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --card:#1e2024; --ink:#eceef2; --muted:#9a9ca6; --line:#32353c;
+    --accent:#3f9e84; --accent-ink:#0d1614; --soft:#1e2e2a; --danger:#e0776e; --warn:#e0c377; --warnbg:#2c2618;
   }
-  *{box-sizing:border-box}
-  #root{direction:rtl; font-family:"Assistant","Segoe UI",Arial,sans-serif; color:var(--ink); max-width:820px; margin:0 auto; padding:4px 2px 40px}
-  h1{font-size:22px; margin:0 0 4px}
-  h2{font-size:16px; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line)}
-  p.sub{color:var(--muted); font-size:14px; margin:0 0 18px}
-  .tabs{display:flex; gap:6px; margin-bottom:18px; background:var(--bg); padding:5px; border-radius:10px}
-  .tabs button{flex:1; padding:9px; border:0; background:transparent; border-radius:7px; font-size:14px; cursor:pointer; font-family:inherit; color:var(--muted)}
-  .tabs button.on{background:#fff; color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.12)}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-  .full{grid-column:1/-1}
-  label{display:block; font-size:13px; color:var(--muted); margin-bottom:5px}
-  input,select,textarea{width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:15px; font-family:inherit; background:#fff}
-  textarea{min-height:76px; resize:vertical; line-height:1.6}
-  input:focus,textarea:focus,select:focus{outline:2px solid var(--accent-soft); border-color:var(--accent)}
-  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px; border-radius:9px; border:0; background:var(--accent); color:#fff; font-size:15px; font-family:inherit; font-weight:600; cursor:pointer}
-  .btn.ghost{background:#fff; color:var(--ink); border:1px solid var(--line); font-weight:500}
-  .btn:disabled{opacity:.45; cursor:not-allowed}
-  .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
-  .linkbox{margin-top:16px; background:var(--accent-soft); border:1px solid #cfe0da; border-radius:10px; padding:14px}
-  .linkbox code{display:block; word-break:break-all; font-size:11px; color:#31554b; background:#fff; padding:9px; border-radius:6px; max-height:90px; overflow:auto; margin:8px 0}
-  .note{font-size:12.5px; color:var(--muted); line-height:1.6}
-  .sigwrap{border:1px dashed #bdbdc7; border-radius:10px; background:#fff; position:relative}
-  canvas#sig{width:100%; height:170px; display:block; touch-action:none; border-radius:10px}
-  .sighint{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#bbb; font-size:14px; pointer-events:none}
-  .chk{display:flex; gap:9px; align-items:flex-start; font-size:14.5px; line-height:1.55; background:var(--bg); padding:12px; border-radius:9px}
-  .chk input{width:18px; height:18px; margin-top:2px; flex:0 0 auto}
-  .err{color:var(--danger); font-size:13.5px; margin-top:10px}
-  .ok{background:#eef7f2; border:1px solid #cfe6da; padding:14px; border-radius:10px; font-size:14.5px; margin-top:16px}
-  /* ---- the printable letter ---- */
-  #letter{width:794px; min-height:1123px; background:#fff; padding:70px 80px; direction:rtl; color:#000;
-          font-family:"Assistant","Segoe UI",Arial,sans-serif; font-size:17px; line-height:2.1}
-  #letter .school{text-align:center; font-size:19px; font-weight:700; line-height:1.6; margin-bottom:46px}
-  #letter .date{text-align:right; margin-bottom:26px}
-  #letter .body p{margin:0 0 6px}
-  #letter .divider{text-align:center; letter-spacing:5px; color:#444; margin:70px 0 34px}
-  #letter .fld{border-bottom:1px solid #000; display:inline-block; min-width:150px; text-align:center; padding:0 8px}
-  #letter .sigline{display:flex; align-items:flex-end; gap:14px; margin-top:34px}
-  #letter .sigbox{border-bottom:1px solid #000; width:230px; height:70px; display:flex; align-items:flex-end; justify-content:center}
-  #letter .sigbox img{max-height:66px; max-width:100%}
-  .stage{position:fixed; right:-3000px; top:0}
-  @media (max-width:620px){ .grid{grid-template-columns:1fr} }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --card:#1e2024; --ink:#eceef2; --muted:#9a9ca6; --line:#32353c;
+  --accent:#3f9e84; --accent-ink:#0d1614; --soft:#1e2e2a; --danger:#e0776e; --warn:#e0c377; --warnbg:#2c2618;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--ink); font-family:"Assistant","Segoe UI",Arial,sans-serif; font-size:15.5px; line-height:1.55}
+.wrap{max-width:960px; margin:0 auto; padding:18px 16px 60px}
+.topbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
+.brand{font-weight:700; font-size:18px; margin-inline-end:auto}
+.brand small{display:block; font-weight:400; font-size:12.5px; color:var(--muted)}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px}
+h1{font-size:21px; margin:0 0 4px}
+h2{font-size:16.5px; margin:0 0 12px}
+h3{font-size:14.5px; margin:18px 0 8px; color:var(--muted); font-weight:600}
+p.sub{color:var(--muted); font-size:13.5px; margin:0 0 16px}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px}
+.full{grid-column:1/-1}
+label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px}
+input,select,textarea{width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:15px; background:var(--card); color:var(--ink)}
+textarea{min-height:70px; resize:vertical; line-height:1.6}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--soft); border-color:var(--accent)}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 16px; border-radius:9px; border:0;
+     background:var(--accent); color:var(--accent-ink); font:inherit; font-weight:600; cursor:pointer}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:500}
+.btn.sm{padding:6px 11px; font-size:13.5px; font-weight:500}
+.btn.dngr{background:transparent; color:var(--danger); border:1px solid var(--line)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.row{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+.row.mt{margin-top:16px}
+table{width:100%; border-collapse:collapse; font-size:14.5px}
+th,td{text-align:right; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle}
+th{font-size:12.5px; color:var(--muted); font-weight:600}
+.tag{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12.5px; font-weight:600}
+.tag.ok{background:var(--soft); color:var(--accent)}
+.tag.no{background:transparent; border:1px solid var(--line); color:var(--muted)}
+.linkbox{background:var(--soft); border:1px solid var(--line); border-radius:11px; padding:13px}
+.linkbox code{display:block; word-break:break-all; font-size:11.5px; background:var(--card); padding:8px; border-radius:7px; margin:8px 0; max-height:80px; overflow:auto}
+.note{font-size:12.5px; color:var(--muted); line-height:1.6}
+.warnbox{background:var(--warnbg); border:1px solid var(--line); color:var(--warn); border-radius:10px; padding:11px 13px; font-size:13.5px; margin-bottom:14px}
+.err{color:var(--danger); font-size:13.5px; margin-top:9px}
+.ok{background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:14px; margin-top:14px}
+.empty{color:var(--muted); font-size:14px; padding:18px 0; text-align:center}
+.listrow{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.listrow .main{margin-inline-end:auto}
+.listrow b{font-size:15.5px}
+.listrow .meta{font-size:12.5px; color:var(--muted)}
+.sigwrap{border:1px dashed var(--line); border-radius:11px; background:var(--card); position:relative}
+canvas#sig{width:100%; height:165px; display:block; touch-action:none; border-radius:11px}
+.sighint{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; pointer-events:none}
+.chk{display:flex; gap:9px; align-items:flex-start; font-size:14.5px; background:var(--bg); border:1px solid var(--line); padding:12px; border-radius:10px}
+.chk input{width:18px; height:18px; margin-top:2px; flex:0 0 auto}
+.stage{position:fixed; inset-inline-start:-4000px; top:0}
+.tabs{display:flex; gap:6px; background:var(--bg); border:1px solid var(--line); padding:5px; border-radius:11px; margin-bottom:16px}
+.tabs button{flex:1; padding:8px; border:0; background:transparent; border-radius:8px; font:inherit; font-size:14px; color:var(--muted); cursor:pointer}
+.tabs button.on{background:var(--card); color:var(--ink); font-weight:600}
+.scroll{overflow-x:auto}
+/* ---- printable letter ---- */
+#letter{width:794px; min-height:1123px; background:#fff; color:#000; padding:70px 78px; direction:rtl;
+        font-family:"Assistant","Segoe UI",Arial,sans-serif; font-size:17px; line-height:2.05}
+#letter .school{text-align:center; font-size:19px; font-weight:700; line-height:1.6; margin-bottom:44px}
+#letter .ldate{margin-bottom:24px}
+#letter p{margin:0 0 6px}
+#letter .divider{text-align:center; letter-spacing:5px; margin:64px 0 32px}
+#letter .fld{border-bottom:1px solid #000; display:inline-block; min-width:150px; text-align:center; padding:0 8px}
+#letter .sigline{display:flex; align-items:flex-end; gap:22px; margin-top:30px; flex-wrap:wrap}
+#letter .sigbox{border-bottom:1px solid #000; width:220px; height:66px; display:flex; align-items:flex-end; justify-content:center}
+#letter .sigbox img{max-height:62px; max-width:100%}
+#letter .stamp{margin-top:42px; font-size:12px; color:#555; border-top:1px dashed #999; padding-top:8px}
+@media (max-width:640px){ .grid,.grid3{grid-template-columns:1fr} }
 </style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card"><div class="empty">טוען…</div></div></div>
+<div class="stage"><div id="letter"></div></div>
+
+<!-- =======================================================================
+     הגדרות חיבור — יש למלא פעם אחת בלבד.
+     היכנסו ל-https://console.firebase.google.com, צרו פרויקט,
+     הוסיפו אפליקציית Web, והעתיקו לכאן את הערכים מתוך firebaseConfig.
+     הוראות מלאות בעברית נמצאות בקובץ README.md.
+     ======================================================================= -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBzOVRusCmGeTp2GRd5nMIs6hYuReO2N6g",
+  authDomain: "school-slips.firebaseapp.com",
+  projectId: "school-slips",
+  storageBucket: "school-slips.firebasestorage.app",
+  messagingSenderId: "790484475554",
+  appId: "1:790484475554:web:c3d1685c16d48b395781fb",
+  measurementId: "G-69JRX49BL2"
+};
+</script>
 
 <script>
 (function(){
-  const $ = s => document.querySelector(s);
-  const root = document.getElementById('root');
-  const DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+"use strict";
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rid = p => (p||'') + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+const heDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${+d}.${+m}.${y.slice(2)}`; };
+const dayName = iso => iso ? DAYS[new Date(iso+'T00:00').getDay()] : '';
+const norm = s => String(s||'').replace(/\s+/g,' ').trim();
+const nowISO = () => new Date().toISOString();
+const fmtTime = t => { try{ const d=new Date(t); return d.toLocaleDateString('he-IL')+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
 
-  /* ---------- encoding helpers (Hebrew-safe base64url) ---------- */
-  function enc(obj){
-    const bytes = new TextEncoder().encode(JSON.stringify(obj));
-    let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
-    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-  function dec(str){
+async function sha(u,p){
+  const buf = new TextEncoder().encode('slips-v1:'+u+':'+p);
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ============ storage layer: Firebase Firestore, localStorage fallback ============ */
+const Store = {
+  fdb:null, fs:null, mode:'local', err:'',
+  async init(){
+    if(!window.FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.indexOf('הדביקו')>-1){
+      this.err = 'no-config'; this.mode='local'; return;
+    }
     try{
-      const b = atob(str.replace(/-/g,'+').replace(/_/g,'/'));
-      const arr = Uint8Array.from(b, c=>c.charCodeAt(0));
-      return JSON.parse(new TextDecoder().decode(arr));
-    }catch(e){ return null; }
+      const V = 'https://www.gstatic.com/firebasejs/10.12.2/';
+      const [appMod, fsMod, authMod] = await Promise.all([
+        import(V+'firebase-app.js'), import(V+'firebase-firestore.js'), import(V+'firebase-auth.js')
+      ]);
+      const app = appMod.initializeApp(FIREBASE_CONFIG);
+      this.fdb = fsMod.getFirestore(app);
+      this.fs = fsMod;
+      try{ await authMod.signInAnonymously(authMod.getAuth(app)); }
+      catch(e){ this.err='auth: '+(e.code||e.message); }
+      await fsMod.getDoc(fsMod.doc(this.fdb,'app','ping')).catch(()=>{});
+      this.mode = 'cloud';
+    }catch(e){ this.err = (e && (e.code||e.message)) || 'init'; this.mode='local'; }
+  },
+  _doc(path){ return this.fs.doc.apply(null, [this.fdb].concat(path.split('/'))); },
+  async get(path){
+    if(this.fdb){ const s = await this.fs.getDoc(this._doc(path)); return s.exists() ? s.data() : null; }
+    try{ const v = localStorage.getItem('slips:'+path); return v?JSON.parse(v):null; }catch(e){ return null; }
+  },
+  async set(path,data){
+    if(this.fdb) return this.fs.setDoc(this._doc(path), data);
+    try{ localStorage.setItem('slips:'+path, JSON.stringify(data)); }catch(e){ throw e; }
+  },
+  async del(path){
+    if(this.fdb) return this.fs.deleteDoc(this._doc(path));
+    try{ localStorage.removeItem('slips:'+path); }catch(e){}
+  },
+  async list(coll, field, value){
+    if(this.fdb){
+      const ref = this.fs.collection.apply(null, [this.fdb].concat(coll.split('/')));
+      const q = field ? this.fs.query(ref, this.fs.where(field,'==',value)) : ref;
+      const snap = await this.fs.getDocs(q);
+      const out=[]; snap.forEach(d=>out.push(Object.assign({_id:d.id}, d.data())));
+      return out;
+    }
+    const out=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('slips:'+coll+'/')){
+        const id = k.slice(('slips:'+coll+'/').length);
+        if(id.indexOf('/')>-1) continue;
+        try{ const o = JSON.parse(localStorage.getItem(k)); if(!field || o[field]===value) out.push(Object.assign({_id:id},o)); }catch(e){}
+      }
+    }
+    return out;
   }
-  const heDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${+d}.${+m}.${y.slice(2)}`; };
-  const dayName = iso => iso ? DAYS[new Date(iso+'T00:00').getDay()] : '';
-  const esc = s => (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+};
 
-  /* ---------- state ---------- */
-  let cfg = null;                       // activity config (from teacher / URL)
-  let mode = 'teacher';
-  const hash = location.hash.match(/[#&]f=([^&]+)/);
-  if(hash){ const d = dec(hash[1]); if(d){ cfg = d; mode='parent'; } }
+/* ============ download layer ============ */
+async function saveFile(filename, blob){
+  const url = URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000); return true;
+}
 
-  /* ---------- teacher view ---------- */
-  function teacherView(){
-    const today = new Date().toISOString().slice(0,10);
-    root.innerHTML = `
-      <h1>אישורי הורים ליציאה מבית הספר</h1>
-      <p class="sub">המורה ממלא/ת את פרטי הפעילות, שולח/ת קישור להורים — וכל הורה מקבל מכתב PDF חתום ומלא.</p>
-      <div class="tabs">
-        <button class="on">1 · יצירת טופס (מורה)</button>
-        <button id="toParent">2 · תצוגת ההורים</button>
-      </div>
-      <h2>פרטי בית הספר</h2>
+/* ============ session ============ */
+let ME = null;
+const saveSession = u => { try{ sessionStorage.setItem('slips_me', u); }catch(e){} };
+const clearSession = () => { try{ sessionStorage.removeItem('slips_me'); }catch(e){} };
+
+/* ============ letter + pdf ============ */
+function letterBody(ev){
+  return (ev.body||'')
+    .replace(/{יום}/g, dayName(ev.adate))
+    .replace(/{תאריך}/g, heDate(ev.adate))
+    .replace(/{שעות}/g, (ev.t1&&ev.t2)?`${ev.t1}–${ev.t2}`:'')
+    .replace(/{מקום}/g, ev.place||'');
+}
+function buildLetter(ev, sub){
+  const hours = (ev.t1&&ev.t2) ? `יציאה בשעה ${ev.t1}, חזרה משוערת בשעה ${ev.t2}.` : '';
+  $('#letter').innerHTML = `
+    <div class="school">${esc(ev.s1)}<br>${esc(ev.s2)}</div>
+    <div class="ldate">${esc(heDate(ev.ldate))}</div>
+    <p>הורים יקרים,</p>
+    <p>${esc(letterBody(ev))}</p>
+    ${hours?`<p>${esc(hours)}</p>`:''}
+    ${ev.extra?`<p>${esc(ev.extra)}</p>`:''}
+    <p style="margin-top:20px">${esc(ev.from)}</p>
+    <div class="divider">- - - - - - אישור - - - - - -</div>
+    <p>הנני מאשר/ת לבני / בתי <span class="fld">${esc(sub.child)}</span> כיתה <span class="fld" style="min-width:90px">${esc(sub.cls)}</span></p>
+    <p>לצאת ל${esc(ev.atype)}${ev.place?' ב'+esc(ev.place):''} ביום ${esc(dayName(ev.adate))} ${esc(heDate(ev.adate))}.</p>
+    ${sub.notes?`<p>הערות / רגישויות: ${esc(sub.notes)}</p>`:''}
+    ${sub.phone?`<p>טלפון ליצירת קשר: ${esc(sub.phone)}</p>`:''}
+    <div class="sigline">
+      <div>שם ההורה: <span class="fld">${esc(sub.pname)}</span></div>
+      <div style="display:flex; align-items:flex-end; gap:10px">חתימת ההורה:
+        <span class="sigbox">${sub.sig?`<img src="${sub.sig}">`:''}</span></div>
+    </div>
+    <div class="stamp">הוגש דיגיטלית · ${esc(fmtTime(sub.submittedAt||nowISO()))} · מזהה: ${esc(sub._id||'—')}</div>`;
+}
+async function makePdfBlob(ev, sub){
+  buildLetter(ev, sub);
+  await new Promise(r=>setTimeout(r,60));
+  const canvas = await html2canvas($('#letter'), {scale:2, backgroundColor:'#ffffff'});
+  const {jsPDF} = window.jspdf;
+  const pdf = new jsPDF('p','mm','a4');
+  const w=210, h=canvas.height*w/canvas.width;
+  pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,Math.min(h,297));
+  return pdf.output('blob');
+}
+async function downloadSlip(ev, sub){
+  const blob = await makePdfBlob(ev, sub);
+  await saveFile(`אישור_${(sub.child||'הורה').replace(/\s+/g,'_')}.pdf`, blob);
+}
+
+/* ============ signature pad ============ */
+let sctx, sdrawing=false, shas=false, scv;
+function setupSig(){
+  scv = $('#sig'); if(!scv) return;
+  const r = scv.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  scv.width=r.width*dpr; scv.height=r.height*dpr;
+  sctx = scv.getContext('2d'); sctx.scale(dpr,dpr);
+  sctx.lineWidth=2.4; sctx.lineCap='round'; sctx.lineJoin='round'; sctx.strokeStyle='#12233a';
+  const pos = e => { const b=scv.getBoundingClientRect(); return [e.clientX-b.left, e.clientY-b.top]; };
+  scv.addEventListener('pointerdown', e=>{ sdrawing=true; shas=true; const h=$('#sighint'); if(h) h.style.display='none';
+    scv.setPointerCapture(e.pointerId); sctx.beginPath(); sctx.moveTo.apply(sctx,pos(e)); });
+  scv.addEventListener('pointermove', e=>{ if(!sdrawing) return; sctx.lineTo.apply(sctx,pos(e)); sctx.stroke(); });
+  ['pointerup','pointerleave','pointercancel'].forEach(t=>scv.addEventListener(t,()=>sdrawing=false));
+}
+function clearSig(){ if(!sctx) return; sctx.clearRect(0,0,scv.width,scv.height); shas=false; const h=$('#sighint'); if(h) h.style.display='flex'; }
+function sigData(){
+  const max=560, ratio = Math.min(1, max/scv.width);
+  const t=document.createElement('canvas'); t.width=scv.width*ratio; t.height=scv.height*ratio;
+  t.getContext('2d').drawImage(scv,0,0,t.width,t.height);
+  return t.toDataURL('image/png');
+}
+
+/* ============ boot ============ */
+(async function boot(){
+  await Store.init();
+  const m = location.hash.match(/[#&]e=([A-Za-z0-9_\-]+)/);
+  if(m){ return parentPage(m[1]); }
+  const cfg = await Store.get('app/config');
+  if(!cfg || !cfg.bootstrapped) return setupPage();
+  let saved=null; try{ saved = sessionStorage.getItem('slips_me'); }catch(e){}
+  if(saved){
+    const u = await Store.get('users/'+saved);
+    if(u && u.active!==false){ ME = Object.assign({_id:saved}, u); return home(); }
+  }
+  loginPage();
+})();
+
+function modeBanner(){
+  if(Store.mode==='cloud') return '';
+  const why = Store.err==='no-config'
+    ? 'לא הוגדרו פרטי החיבור ל-Firebase בראש הקובץ index.html.'
+    : 'החיבור ל-Firebase נכשל ('+esc(Store.err)+'). בדקו את הגדרות הפרויקט, ההרשאות (Rules) וההתחברות האנונימית.';
+  return `<div class="warnbox"><b>מצב מקומי — הנתונים נשמרים רק בדפדפן הזה.</b><br>${why}<br>
+    טפסים שהורים ימלאו במכשיר אחר לא יגיעו לתיקייה עד שהחיבור יוגדר. ראו קובץ README.md.</div>`;
+}
+
+/* ============ setup (first run) ============ */
+function setupPage(){
+  app.innerHTML = `
+    <div class="topbar"><div class="brand">מערכת אישורי הורים<small>התקנה ראשונית</small></div></div>
+    ${modeBanner()}
+    <div class="card">
+      <h2>יצירת חשבון מנהל (ADMIN)</h2>
+      <p class="sub">זהו המסך היחיד שנפתח פעם אחת. לאחר היצירה, רק המנהל יוכל להוסיף מורים ותיקיות.</p>
       <div class="grid">
-        <div class="full"><label>שם בית הספר (שורה 1)</label><input id="s1" value="בית הספר הממלכתי"></div>
-        <div class="full"><label>שם בית הספר (שורה 2)</label><input id="s2" value='ע"ש הנרייטה סאלד ירושלים'></div>
+        <div><label>שם משתמש</label><input id="u" value="admin" autocomplete="username"></div>
+        <div><label>שם לתצוגה</label><input id="n" placeholder="שם המנהל/ת"></div>
+        <div><label>סיסמה</label><input id="p" type="password" autocomplete="new-password"></div>
+        <div><label>אימות סיסמה</label><input id="p2" type="password" autocomplete="new-password"></div>
+        <div class="full"><label>שם המוסד</label><input id="org" value="בית הספר הממלכתי ע&quot;ש הנרייטה סאלד ירושלים"></div>
       </div>
-      <h2>פרטי הפעילות</h2>
-      <div class="grid">
-        <div><label>תאריך המכתב</label><input type="date" id="ldate" value="${today}"></div>
-        <div><label>תאריך הפעילות</label><input type="date" id="adate" value="${today}"></div>
-        <div><label>סוג הפעילות</label>
-          <select id="atype">
-            <option>סיור</option><option>למידת חוץ</option><option>טיול שנתי</option>
-            <option>פעילות ספורט</option><option>הצגה / מופע</option><option>אחר</option>
-          </select></div>
-        <div><label>יעד / מקום</label><input id="place" placeholder="לדוגמה: חורשת הירח"></div>
-        <div><label>שעת יציאה</label><input type="time" id="t1" value="08:30"></div>
-        <div><label>שעת חזרה</label><input type="time" id="t2" value="12:30"></div>
-        <div class="full"><label>נוסח המכתב להורים</label>
-          <textarea id="body">במסגרת למידת חוץ נצא ביום {יום} {תאריך} לחורשת הירח.</textarea>
-          <div class="note" style="margin-top:6px">אפשר להשתמש ב־{יום} {תאריך} {שעות} {מקום} והם יוחלפו אוטומטית.</div>
+      <div class="row mt"><button class="btn" id="go">יצירת החשבון</button></div>
+      <div id="msg"></div>
+    </div>`;
+  $('#go').onclick = async () => {
+    const u=norm($('#u').value), n=norm($('#n').value)||u, p=$('#p').value, p2=$('#p2').value;
+    if(!u || p.length<4) return $('#msg').innerHTML='<div class="err">נא למלא שם משתמש וסיסמה באורך 4 תווים לפחות.</div>';
+    if(p!==p2) return $('#msg').innerHTML='<div class="err">הסיסמאות אינן תואמות.</div>';
+    await Store.set('users/'+u, {username:u, name:n, role:'admin', hash:await sha(u,p), active:true, createdAt:nowISO()});
+    await Store.set('app/config', {bootstrapped:true, org:norm($('#org').value), createdAt:nowISO()});
+    ME = {_id:u, username:u, name:n, role:'admin'}; saveSession(u); home();
+  };
+}
+
+/* ============ login ============ */
+function loginPage(msg){
+  app.innerHTML = `
+    <div class="topbar"><div class="brand">מערכת אישורי הורים<small>כניסה למערכת</small></div></div>
+    ${modeBanner()}
+    <div class="card" style="max-width:420px; margin:0 auto">
+      <h2>כניסה</h2>
+      <div style="display:grid; gap:12px">
+        <div><label>שם משתמש</label><input id="u" autocomplete="username"></div>
+        <div><label>סיסמה</label><input id="p" type="password" autocomplete="current-password"></div>
+      </div>
+      <div class="row mt"><button class="btn" id="go" style="width:100%">כניסה</button></div>
+      <div id="msg">${msg?`<div class="err">${esc(msg)}</div>`:''}</div>
+    </div>`;
+  const doLogin = async () => {
+    const u=norm($('#u').value), p=$('#p').value;
+    const rec = await Store.get('users/'+u);
+    if(!rec || rec.active===false || rec.hash!==await sha(u,p))
+      return $('#msg').innerHTML='<div class="err">שם משתמש או סיסמה שגויים.</div>';
+    ME = Object.assign({_id:u}, rec); saveSession(u); home();
+  };
+  $('#go').onclick = doLogin;
+  $('#p').onkeydown = e => { if(e.key==='Enter') doLogin(); };
+  $('#u').focus();
+}
+
+function header(sub, extra){
+  return `<div class="topbar">
+    <div class="brand">מערכת אישורי הורים<small>${esc(sub||'')}</small></div>
+    ${extra||''}
+    <span class="note">${esc(ME? (ME.name||ME.username)+' · '+(ME.role==='admin'?'מנהל':'מורה') : '')}</span>
+    <button class="btn ghost sm" id="out">יציאה</button>
+  </div>`;
+}
+function bindOut(){ const b=$('#out'); if(b) b.onclick = () => { ME=null; clearSession(); loginPage(); }; }
+
+function home(){ ME.role==='admin' ? adminPage() : teacherPage(ME.folderId); }
+
+/* ============ admin ============ */
+async function adminPage(tab){
+  tab = tab || 'teachers';
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען נתונים…</div></div>`;
+  bindOut();
+  const [users, folders, events, subs] = await Promise.all([
+    Store.list('users'), Store.list('folders'), Store.list('events'), Store.list('submissions')
+  ]);
+  const cfg = await Store.get('app/config') || {};
+  const cnt = f => events.filter(e=>e.folderId===f._id).length;
+  const scnt = f => subs.filter(s=>s.folderId===f._id).length;
+
+  const teachersHtml = () => {
+    const list = users.filter(u=>u.role!=='admin');
+    if(!list.length) return `<div class="empty">אין עדיין מורים במערכת.</div>`;
+    return `<div class="scroll"><table><tr><th>מורה</th><th>שם משתמש</th><th>תיקייה</th><th>אירועים</th><th>סטטוס</th><th></th></tr>
+      ${list.map(u=>{ const f=folders.find(x=>x._id===u.folderId);
+        return `<tr><td><b>${esc(u.name||u.username)}</b></td><td class="note">${esc(u.username)}</td>
+          <td>${f?esc(f.name):'<span class="note">— לא משויכת —</span>'}</td>
+          <td>${f?cnt(f):0}</td>
+          <td>${u.active===false?'<span class="tag no">מושבת</span>':'<span class="tag ok">פעיל</span>'}</td>
+          <td class="row" style="gap:6px">
+            <button class="btn ghost sm" data-pw="${esc(u.username)}">סיסמה</button>
+            <button class="btn ghost sm" data-tg="${esc(u.username)}">${u.active===false?'הפעלה':'השבתה'}</button>
+            <button class="btn dngr sm" data-del="${esc(u.username)}">מחיקה</button>
+          </td></tr>`;}).join('')}
+    </table></div>`;
+  };
+  const foldersHtml = () => {
+    if(!folders.length) return `<div class="empty">אין עדיין תיקיות.</div>`;
+    return folders.map(f=>{ const owner = users.find(u=>u.folderId===f._id);
+      return `<div class="listrow"><div class="main"><b>${esc(f.name)}</b>
+        <div class="meta">${owner?('מורה: '+esc(owner.name||owner.username)):'ללא מורה משויך'} · ${cnt(f)} אירועים · ${scnt(f)} אישורים</div></div>
+        <button class="btn ghost sm" data-open="${esc(f._id)}">פתיחה</button>
+        <button class="btn ghost sm" data-ren="${esc(f._id)}">שינוי שם</button>
+        <button class="btn ghost sm" data-asg="${esc(f._id)}">שיוך מורה</button>
+        <button class="btn dngr sm" data-delf="${esc(f._id)}">מחיקה</button></div>`;
+    }).join('');
+  };
+
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + `
+    <div class="tabs">
+      <button data-tab="teachers" class="${tab==='teachers'?'on':''}">מורים</button>
+      <button data-tab="folders" class="${tab==='folders'?'on':''}">תיקיות</button>
+      <button data-tab="settings" class="${tab==='settings'?'on':''}">הגדרות</button>
+    </div>
+    ${tab==='teachers'?`
+      <div class="card"><h2>מורים במערכת</h2>${teachersHtml()}</div>
+      <div class="card"><h2>הוספת מורה + תיקייה</h2>
+        <div class="grid">
+          <div><label>שם המורה</label><input id="tn" placeholder="לדוגמה: רחל כהן"></div>
+          <div><label>שם התיקייה</label><input id="tf" placeholder="לדוגמה: כיתה ג'2"></div>
+          <div><label>שם משתמש</label><input id="tu" placeholder="באנגלית, ללא רווחים"></div>
+          <div><label>סיסמה ראשונית</label><input id="tp" type="text" placeholder="4 תווים לפחות"></div>
         </div>
-        <div class="full"><label>חתימת השולח</label><input id="from" value="תודה, מחנכות ג'"></div>
-        <div class="full"><label>הערות נוספות להורים (לא חובה)</label><input id="extra" placeholder="לדוגמה: יש להצטייד בכובע, מים ונעליים סגורות"></div>
-      </div>
-      <div class="row">
-        <button class="btn" id="make">יצירת קישור להורים</button>
-      </div>
-      <div id="out"></div>`;
+        <div class="row mt"><button class="btn" id="addT">הוספה</button></div><div id="msg"></div></div>`
+    : tab==='folders'?`
+      <div class="card"><h2>תיקיות</h2>${foldersHtml()}</div>
+      <div class="card"><h2>פתיחת תיקייה חדשה</h2>
+        <div class="grid"><div><label>שם התיקייה</label><input id="nf" placeholder="לדוגמה: שכבת ד'"></div>
+        <div><label>שיוך למורה (לא חובה)</label><select id="nfu"><option value="">— ללא —</option>
+          ${users.filter(u=>u.role!=='admin').map(u=>`<option value="${esc(u.username)}">${esc(u.name||u.username)}</option>`).join('')}</select></div></div>
+        <div class="row mt"><button class="btn" id="addF">יצירת תיקייה</button></div><div id="msg"></div></div>`
+    :`
+      <div class="card"><h2>הגדרות כלליות</h2>
+        <div><label>שם המוסד</label><input id="org" value="${esc(cfg.org||'')}"></div>
+        <div class="row mt"><button class="btn" id="saveOrg">שמירה</button></div>
+        <h3>שינוי סיסמת המנהל</h3>
+        <div class="grid"><div><label>סיסמה חדשה</label><input id="ap" type="password"></div>
+        <div><label>אימות</label><input id="ap2" type="password"></div></div>
+        <div class="row mt"><button class="btn ghost" id="saveAp">עדכון סיסמה</button></div>
+        <h3>נתוני המערכת</h3>
+        <p class="note">${users.length} משתמשים · ${folders.length} תיקיות · ${events.length} אירועים · ${subs.length} אישורים שהוגשו.
+        אחסון: ${Store.mode==='cloud'?'Firebase Firestore (משותף)':'מקומי בדפדפן בלבד'}.</p>
+        <div class="row mt"><button class="btn dngr" id="wipe">איפוס כל האישורים במערכת</button></div>
+        <div id="msg"></div></div>`}`;
+  bindOut();
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>adminPage(b.dataset.tab));
 
-    $('#make').onclick = () => {
-      const g = id => $('#'+id).value.trim();
-      cfg = {s1:g('s1'), s2:g('s2'), ldate:g('ldate'), adate:g('adate'), atype:g('atype'),
-             place:g('place'), t1:g('t1'), t2:g('t2'), body:g('body'), from:g('from'), extra:g('extra')};
-      const link = location.origin + location.pathname + location.search + '#f=' + enc(cfg);
-      $('#out').innerHTML = `
-        <div class="linkbox">
-          <strong>הקישור להורים מוכן ✓</strong>
-          <code id="lnk">${esc(link)}</code>
-          <div class="row" style="margin-top:4px">
-            <button class="btn" id="copy">העתקת הקישור</button>
-            <button class="btn ghost" id="prev">פתיחת טופס ההורים</button>
-          </div>
-          <p class="note" style="margin-top:10px">כל פרטי הפעילות מקודדים בתוך הקישור עצמו — אין צורך בשרת או במסד נתונים. שלחו אותו בוואטסאפ של הכיתה.</p>
-        </div>`;
-      $('#copy').onclick = async () => {
-        try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }
-        catch(e){ const r=document.createRange(); r.selectNode($('#lnk')); getSelection().removeAllRanges(); getSelection().addRange(r); $('#copy').textContent='סמנו והעתיקו ידנית'; }
-      };
-      $('#prev').onclick = () => { mode='parent'; parentView(); scrollTo(0,0); };
+  if(tab==='teachers'){
+    $('#addT').onclick = async () => {
+      const n=norm($('#tn').value), fn=norm($('#tf').value), u=norm($('#tu').value), p=$('#tp').value;
+      if(!n||!fn||!u||p.length<4) return $('#msg').innerHTML='<div class="err">נא למלא את כל השדות (סיסמה: 4 תווים לפחות).</div>';
+      if(!/^[A-Za-z0-9_.\-]+$/.test(u)) return $('#msg').innerHTML='<div class="err">שם המשתמש יכול להכיל אותיות באנגלית, ספרות, נקודה ומקף בלבד.</div>';
+      if(await Store.get('users/'+u)) return $('#msg').innerHTML='<div class="err">שם המשתמש כבר קיים.</div>';
+      const fid = rid('f_');
+      await Store.set('folders/'+fid, {name:fn, owner:u, createdAt:nowISO()});
+      await Store.set('users/'+u, {username:u, name:n, role:'teacher', folderId:fid, hash:await sha(u,p), active:true, createdAt:nowISO()});
+      adminPage('teachers');
     };
-    $('#toParent').onclick = () => { if(!cfg){ alert('צרו קודם את פרטי הפעילות ולחצו על "יצירת קישור להורים".'); return;} mode='parent'; parentView(); };
+    app.querySelectorAll('[data-pw]').forEach(b=>b.onclick=async()=>{
+      const u=b.dataset.pw, p=prompt('סיסמה חדשה עבור '+u+':'); if(!p||p.length<4) return;
+      const rec=await Store.get('users/'+u); rec.hash=await sha(u,p); await Store.set('users/'+u,rec); alert('הסיסמה עודכנה.');
+    });
+    app.querySelectorAll('[data-tg]').forEach(b=>b.onclick=async()=>{
+      const u=b.dataset.tg, rec=await Store.get('users/'+u); rec.active = rec.active===false; await Store.set('users/'+u,rec); adminPage('teachers');
+    });
+    app.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      const u=b.dataset.del; if(!confirm('למחוק את המורה '+u+'? התיקייה והאישורים יישמרו.')) return;
+      await Store.del('users/'+u); adminPage('teachers');
+    });
   }
+  if(tab==='folders'){
+    $('#addF').onclick = async () => {
+      const n=norm($('#nf').value); if(!n) return $('#msg').innerHTML='<div class="err">נא להזין שם תיקייה.</div>';
+      const fid=rid('f_'); const u=$('#nfu').value;
+      await Store.set('folders/'+fid,{name:n, owner:u||null, createdAt:nowISO()});
+      if(u){ const rec=await Store.get('users/'+u); if(rec){ rec.folderId=fid; await Store.set('users/'+u,rec);} }
+      adminPage('folders');
+    };
+    app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>teacherPage(b.dataset.open,true));
+    app.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.ren, f=await Store.get('folders/'+id); const n=prompt('שם חדש לתיקייה:', f.name); if(!n) return;
+      f.name=norm(n); await Store.set('folders/'+id,f); adminPage('folders');
+    });
+    app.querySelectorAll('[data-asg]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.asg;
+      const opts = users.filter(u=>u.role!=='admin');
+      const pick = prompt('שם המשתמש של המורה לשיוך (ריק = ביטול שיוך):\n'+opts.map(u=>u.username+' — '+(u.name||'')).join('\n'));
+      if(pick===null) return;
+      for(const u of opts){ if(u.folderId===id && u.username!==norm(pick)){ const r=await Store.get('users/'+u.username); r.folderId=null; await Store.set('users/'+u.username,r);} }
+      if(norm(pick)){ const r=await Store.get('users/'+norm(pick)); if(!r) return alert('משתמש לא נמצא'); r.folderId=id; await Store.set('users/'+norm(pick),r); }
+      const f=await Store.get('folders/'+id); f.owner=norm(pick)||null; await Store.set('folders/'+id,f);
+      adminPage('folders');
+    });
+    app.querySelectorAll('[data-delf]').forEach(b=>b.onclick=async()=>{
+      const id=b.dataset.delf; if(!confirm('למחוק את התיקייה על כל האירועים והאישורים שבה?')) return;
+      for(const e of events.filter(e=>e.folderId===id)) await Store.del('events/'+e._id);
+      for(const s of subs.filter(s=>s.folderId===id)) await Store.del('submissions/'+s._id);
+      for(const u of users.filter(u=>u.folderId===id)){ const r=await Store.get('users/'+u.username); if(r){ r.folderId=null; await Store.set('users/'+u.username,r);} }
+      await Store.del('folders/'+id); adminPage('folders');
+    });
+  }
+  if(tab==='settings'){
+    $('#saveOrg').onclick = async () => { const c=await Store.get('app/config')||{}; c.org=norm($('#org').value); c.bootstrapped=true; await Store.set('app/config',c); $('#msg').innerHTML='<div class="ok">נשמר ✓</div>'; };
+    $('#saveAp').onclick = async () => {
+      const p=$('#ap').value; if(p.length<4||p!==$('#ap2').value) return $('#msg').innerHTML='<div class="err">סיסמאות לא תקינות או לא תואמות.</div>';
+      const r=await Store.get('users/'+ME.username); r.hash=await sha(ME.username,p); await Store.set('users/'+ME.username,r);
+      $('#msg').innerHTML='<div class="ok">הסיסמה עודכנה ✓</div>';
+    };
+    $('#wipe').onclick = async () => {
+      if(!confirm('למחוק את כל האישורים שהוגשו בכל התיקיות? האירועים יישארו.')) return;
+      for(const s of subs) await Store.del('submissions/'+s._id);
+      adminPage('settings');
+    };
+  }
+}
 
-  /* ---------- parent view ---------- */
-  function parentView(){
-    const hours = (cfg.t1&&cfg.t2) ? `בין השעות ${cfg.t1}–${cfg.t2}` : '';
-    root.innerHTML = `
-      <h1>אישור הורים · ${esc(cfg.atype||'פעילות')}</h1>
-      <p class="sub">${esc(cfg.s1)} ${esc(cfg.s2)}</p>
-      <div class="linkbox" style="background:var(--bg); border-color:var(--line)">
-        <div style="line-height:1.9; font-size:15px">
-          ${esc(letterText())}<br>
-          ${hours?esc(hours)+'<br>':''}${cfg.extra?esc(cfg.extra):''}
-        </div>
+/* ============ teacher folder ============ */
+async function teacherPage(folderId, asAdmin){
+  if(!folderId){
+    app.innerHTML = header('תיקיית המורה') + `<div class="card"><div class="empty">לא שויכה לך תיקייה. פנו למנהל המערכת.</div></div>`;
+    return bindOut();
+  }
+  app.innerHTML = header('טוען…') + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const folder = await Store.get('folders/'+folderId);
+  const events = (await Store.list('events','folderId',folderId)).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const subs = await Store.list('submissions','folderId',folderId);
+  const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
+
+  app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + `
+    <div class="card">
+      <h2>אירועים בתיקייה</h2>
+      ${events.length? events.map(e=>{
+        const n = subs.filter(s=>s.eventId===e._id).length;
+        const total = (e.roster||[]).length;
+        return `<div class="listrow"><div class="main"><b>${esc(e.atype)}${e.place?' · '+esc(e.place):''}</b>
+          <div class="meta">${esc(dayName(e.adate))} ${esc(heDate(e.adate))}${e.t1?' · '+esc(e.t1)+'–'+esc(e.t2):''} · הוגשו ${n}${total?' מתוך '+total:''}</div></div>
+          <span class="tag ${e.closed?'no':'ok'}">${e.closed?'סגור':'פתוח'}</span>
+          <button class="btn ghost sm" data-ev="${esc(e._id)}">פתיחה</button></div>`;
+      }).join('') : `<div class="empty">אין עדיין אירועים. צרו אירוע חדש למטה.</div>`}
+    </div>
+    <div class="card"><h2>אירוע חדש</h2>${eventForm()}
+      <div class="row mt"><button class="btn" id="create">יצירת האירוע וקבלת קישור</button></div><div id="msg"></div></div>`;
+  bindOut();
+  if(asAdmin) $('#back').onclick = () => adminPage('folders');
+  app.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>eventPage(b.dataset.ev, folderId, asAdmin));
+
+  $('#create').onclick = async () => {
+    const g = id => norm($('#'+id).value);
+    if(!g('adate')) return $('#msg').innerHTML='<div class="err">נא לבחור תאריך לפעילות.</div>';
+    const ev = {folderId, s1:g('s1'), s2:g('s2'), ldate:g('ldate'), adate:g('adate'), atype:g('atype'),
+      place:g('place'), t1:g('t1'), t2:g('t2'), body:$('#body').value.trim(), from:g('from'), extra:g('extra'),
+      roster:$('#roster').value.split('\n').map(norm).filter(Boolean), closed:false, createdAt:nowISO(), createdBy:ME.username};
+    const id = rid('e_');
+    await Store.set('events/'+id, ev);
+    eventPage(id, folderId, asAdmin);
+  };
+}
+
+function eventForm(){
+  const today = new Date().toISOString().slice(0,10);
+  return `<div class="grid">
+    <div class="full"><label>שם בית הספר (שורה 1)</label><input id="s1" value="בית הספר הממלכתי"></div>
+    <div class="full"><label>שם בית הספר (שורה 2)</label><input id="s2" value="ע&quot;ש הנרייטה סאלד ירושלים"></div>
+    <div><label>תאריך המכתב</label><input type="date" id="ldate" value="${today}"></div>
+    <div><label>תאריך הפעילות</label><input type="date" id="adate" value="${today}"></div>
+    <div><label>סוג הפעילות</label><select id="atype">
+      <option>סיור</option><option>למידת חוץ</option><option>טיול שנתי</option>
+      <option>פעילות ספורט</option><option>הצגה / מופע</option><option>אחר</option></select></div>
+    <div><label>יעד / מקום</label><input id="place" placeholder="לדוגמה: חורשת הירח"></div>
+    <div><label>שעת יציאה</label><input type="time" id="t1" value="08:30"></div>
+    <div><label>שעת חזרה</label><input type="time" id="t2" value="12:30"></div>
+    <div class="full"><label>נוסח המכתב</label>
+      <textarea id="body">במסגרת למידת חוץ נצא ביום {יום} {תאריך} לחורשת הירח.</textarea>
+      <div class="note" style="margin-top:5px">אפשר להשתמש ב־{יום} {תאריך} {שעות} {מקום}.</div></div>
+    <div class="full"><label>חתימת השולח</label><input id="from" value="תודה, מחנכות ג'"></div>
+    <div class="full"><label>הערות להורים (לא חובה)</label><input id="extra" placeholder="יש להצטייד בכובע, מים ונעליים סגורות"></div>
+    <div class="full"><label>רשימת התלמידים (שורה לכל תלמיד) — לצורך מעקב מי מילא ומי לא</label>
+      <textarea id="roster" placeholder="יעל לוי&#10;דניאל כהן&#10;..."></textarea></div>
+  </div>`;
+}
+
+/* ============ event page (teacher tracking) ============ */
+async function eventPage(eid, folderId, asAdmin){
+  app.innerHTML = header('טוען אירוע…') + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const ev = await Store.get('events/'+eid);
+  if(!ev) return teacherPage(folderId, asAdmin);
+  ev._id = eid;
+  const subs = (await Store.list('submissions','eventId',eid)).sort((a,b)=>(a.submittedAt||'').localeCompare(b.submittedAt||''));
+  const link = location.origin + location.pathname + location.search + '#e=' + eid;
+  const roster = ev.roster||[];
+  const byName = {}; subs.forEach(s=>{ byName[norm(s.child)] = s; });
+  const extras = subs.filter(s=>!roster.some(r=>norm(r)===norm(s.child)));
+
+  const rosterRows = roster.map(r=>{ const s=byName[norm(r)];
+    return `<tr><td>${esc(r)}</td>
+      <td>${s?'<span class="tag ok">הוגש</span>':'<span class="tag no">טרם הוגש</span>'}</td>
+      <td class="note">${s?esc(fmtTime(s.submittedAt)):''}</td>
+      <td class="note">${s?esc(s.pname||''):''}</td>
+      <td>${s?`<button class="btn ghost sm" data-pdf="${esc(s._id)}">PDF</button> <button class="btn dngr sm" data-rm="${esc(s._id)}">מחיקה</button>`:''}</td></tr>`;
+  }).join('');
+  const extraRows = extras.map(s=>`<tr><td>${esc(s.child)} <span class="note">(לא ברשימה)</span></td>
+      <td><span class="tag ok">הוגש</span></td><td class="note">${esc(fmtTime(s.submittedAt))}</td><td class="note">${esc(s.pname||'')}</td>
+      <td><button class="btn ghost sm" data-pdf="${esc(s._id)}">PDF</button> <button class="btn dngr sm" data-rm="${esc(s._id)}">מחיקה</button></td></tr>`).join('');
+
+  app.innerHTML = header('אירוע · '+ev.atype, `<button class="btn ghost sm" id="back">חזרה לתיקייה</button>`) + modeBanner() + `
+    <div class="card">
+      <h2>${esc(ev.atype)}${ev.place?' · '+esc(ev.place):''}</h2>
+      <p class="sub">${esc(dayName(ev.adate))} ${esc(heDate(ev.adate))}${ev.t1?' · '+esc(ev.t1)+'–'+esc(ev.t2):''} · נוצר ${esc(fmtTime(ev.createdAt))}</p>
+      <div class="linkbox">
+        <strong>קישור למילוי ההורים</strong>
+        <code id="lnk">${esc(link)}</code>
+        <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
+          <button class="btn ghost sm" id="open">תצוגה מקדימה</button>
+          <button class="btn ghost sm" id="toggle">${ev.closed?'פתיחת האירוע למילוי':'סגירת האירוע למילוי'}</button></div>
       </div>
-      <h2>מילוי פרטים</h2>
+    </div>
+    <div class="card">
+      <h2>מעקב הגשות · ${subs.length}${roster.length?' מתוך '+roster.length:''}</h2>
+      ${(roster.length||subs.length)?`<div class="scroll"><table>
+        <tr><th>תלמיד/ה</th><th>סטטוס</th><th>זמן הגשה</th><th>הורה חותם</th><th></th></tr>
+        ${rosterRows}${extraRows}</table></div>`:`<div class="empty">אף הורה טרם מילא.</div>`}
+      <div class="row mt">
+        <button class="btn ghost" id="all" ${subs.length?'':'disabled'}>הורדת כל האישורים (PDF)</button>
+        <button class="btn dngr" id="reset" ${subs.length?'':'disabled'}>איפוס האישורים באירוע</button>
+        <button class="btn dngr" id="delev">מחיקת האירוע</button>
+      </div>
+      <div id="msg"></div>
+    </div>`;
+  bindOut();
+  $('#back').onclick = () => teacherPage(folderId, asAdmin);
+  $('#copy').onclick = async () => { try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }catch(e){ $('#copy').textContent='סמנו והעתיקו ידנית'; } };
+  $('#open').onclick = () => parentPage(eid, () => eventPage(eid, folderId, asAdmin));
+  $('#toggle').onclick = async () => { ev.closed=!ev.closed; const c=Object.assign({},ev); delete c._id; await Store.set('events/'+eid,c); eventPage(eid, folderId, asAdmin); };
+  app.querySelectorAll('[data-pdf]').forEach(b=>b.onclick=async()=>{
+    const s = subs.find(x=>x._id===b.dataset.pdf); b.textContent='…';
+    try{ await downloadSlip(ev,s); }catch(e){} b.textContent='PDF';
+  });
+  app.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('למחוק את האישור הזה?')) return;
+    await Store.del('submissions/'+b.dataset.rm); eventPage(eid, folderId, asAdmin);
+  });
+  $('#all').onclick = async () => {
+    $('#msg').innerHTML='<div class="note">מייצר קבצים…</div>';
+    for(const s of subs){ try{ await downloadSlip(ev,s); }catch(e){} }
+    $('#msg').innerHTML='<div class="ok">הורדו '+subs.length+' אישורים ✓</div>';
+  };
+  $('#reset').onclick = async () => {
+    if(!confirm('לאפס את כל האישורים שהוגשו באירוע זה? הפעולה אינה הפיכה.')) return;
+    for(const s of subs) await Store.del('submissions/'+s._id);
+    eventPage(eid, folderId, asAdmin);
+  };
+  $('#delev').onclick = async () => {
+    if(!confirm('למחוק את האירוע ואת כל האישורים שבו?')) return;
+    for(const s of subs) await Store.del('submissions/'+s._id);
+    await Store.del('events/'+eid); teacherPage(folderId, asAdmin);
+  };
+}
+
+/* ============ parent page ============ */
+async function parentPage(eid, onBack){
+  app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
+  const ev = await Store.get('events/'+eid);
+  if(!ev){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">ייתכן שהאירוע נמחק. פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
+  ev._id = eid;
+  if(ev.closed){
+    app.innerHTML = `<div class="card"><h2>הטופס נסגר למילוי</h2><p class="sub">${esc(ev.atype)} · ${esc(heDate(ev.adate))}. פנו למורה.</p></div>`;
+    return;
+  }
+  const hours = (ev.t1&&ev.t2)?`יציאה בשעה ${ev.t1}, חזרה משוערת בשעה ${ev.t2}.`:'';
+  app.innerHTML = `
+    <div class="topbar"><div class="brand">${esc(ev.s1)}<small>${esc(ev.s2)}</small></div>
+      ${onBack?'<button class="btn ghost sm" id="back">חזרה</button>':''}</div>
+    <div class="card">
+      <h2>אישור הורים · ${esc(ev.atype)}</h2>
+      <div style="line-height:1.95">
+        <p style="margin:0 0 6px">הורים יקרים,</p>
+        <p style="margin:0 0 6px">${esc(letterBody(ev))}</p>
+        ${hours?`<p style="margin:0 0 6px">${esc(hours)}</p>`:''}
+        ${ev.extra?`<p style="margin:0 0 6px">${esc(ev.extra)}</p>`:''}
+        <p style="margin:12px 0 0">${esc(ev.from)}</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>מילוי ואישור</h2>
       <div class="grid">
         <div><label>שם התלמיד/ה</label><input id="child" placeholder="שם מלא"></div>
         <div><label>כיתה</label><input id="cls" placeholder="לדוגמה: ג'2"></div>
@@ -163,101 +683,41 @@
         <div><label>טלפון ליצירת קשר</label><input id="phone" inputmode="tel" placeholder="050-0000000"></div>
         <div class="full"><label>הערות / רגישויות בריאותיות (לא חובה)</label><input id="notes"></div>
       </div>
-      <h2>חתימת ההורה</h2>
-      <div class="sigwrap"><canvas id="sig"></canvas><div class="sighint" id="hint">חתמו כאן באצבע או בעכבר</div></div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost" id="clr">ניקוי החתימה</button></div>
-      <div style="margin-top:18px" class="chk">
-        <input type="checkbox" id="agree">
-        <label for="agree" style="margin:0; color:var(--ink)">הנני מאשר/ת לבני / בתי לצאת ל${esc(cfg.atype||'פעילות')}${cfg.place?' ב'+esc(cfg.place):''} ביום ${esc(dayName(cfg.adate))} ${esc(heDate(cfg.adate))}.</label>
-      </div>
-      <div class="row">
-        <button class="btn" id="pdf">ייצוא מכתב PDF חתום</button>
-        <button class="btn ghost" id="back">חזרה למסך המורה</button>
-      </div>
+      <h3>חתימת ההורה</h3>
+      <div class="sigwrap"><canvas id="sig"></canvas><div class="sighint" id="sighint">חתמו כאן באצבע או בעכבר</div></div>
+      <div class="row" style="margin-top:9px"><button class="btn ghost sm" id="clr">ניקוי החתימה</button></div>
+      <div style="margin-top:16px" class="chk"><input type="checkbox" id="agree">
+        <label for="agree" style="margin:0; color:var(--ink)">הנני מאשר/ת לבני / בתי לצאת ל${esc(ev.atype)}${ev.place?' ב'+esc(ev.place):''} ביום ${esc(dayName(ev.adate))} ${esc(heDate(ev.adate))}.</label></div>
+      <div class="row mt"><button class="btn" id="submit">יצירת האישור והגשה למורה</button></div>
       <div id="msg"></div>
-      <div class="stage"><div id="letter"></div></div>`;
-
-    setupSig();
-    $('#clr').onclick = clearSig;
-    $('#back').onclick = () => { mode='teacher'; history.replaceState(null,'',location.pathname+location.search); teacherView(); };
-    $('#pdf').onclick = exportPDF;
-  }
-
-  function letterText(){
-    return (cfg.body||'')
-      .replace(/{יום}/g, dayName(cfg.adate))
-      .replace(/{תאריך}/g, heDate(cfg.adate))
-      .replace(/{שעות}/g, (cfg.t1&&cfg.t2)?`${cfg.t1}–${cfg.t2}`:'')
-      .replace(/{מקום}/g, cfg.place||'');
-  }
-
-  /* ---------- signature pad ---------- */
-  let ctx, drawing=false, hasSig=false, cv;
-  function setupSig(){
-    cv = $('#sig');
-    const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
-    cv.width = r.width*dpr; cv.height = r.height*dpr;
-    ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
-    ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#12233a';
-    const pos = e => { const b=cv.getBoundingClientRect(); return [e.clientX-b.left, e.clientY-b.top]; };
-    cv.addEventListener('pointerdown', e=>{ drawing=true; hasSig=true; $('#hint').style.display='none';
-      cv.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pos(e)); });
-    cv.addEventListener('pointermove', e=>{ if(!drawing) return; ctx.lineTo(...pos(e)); ctx.stroke(); });
-    ['pointerup','pointerleave','pointercancel'].forEach(t=>cv.addEventListener(t,()=>drawing=false));
-  }
-  function clearSig(){ ctx.clearRect(0,0,cv.width,cv.height); hasSig=false; $('#hint').style.display='flex'; }
-
-  /* ---------- build + export ---------- */
-  function buildLetter(d){
-    const hours = (cfg.t1&&cfg.t2) ? `יציאה בשעה ${cfg.t1}, חזרה משוערת בשעה ${cfg.t2}.` : '';
-    $('#letter').innerHTML = `
-      <div class="school">${esc(cfg.s1)}<br>${esc(cfg.s2)}</div>
-      <div class="date">${esc(heDate(cfg.ldate))}</div>
-      <div class="body">
-        <p>הורים יקרים,</p>
-        <p>${esc(letterText())}</p>
-        ${hours?`<p>${esc(hours)}</p>`:''}
-        ${cfg.extra?`<p>${esc(cfg.extra)}</p>`:''}
-        <p style="margin-top:22px">${esc(cfg.from)}</p>
-      </div>
-      <div class="divider">- - - - - - אישור - - - - - -</div>
-      <div class="body">
-        <p>הנני מאשר/ת לבני / בתי <span class="fld">${esc(d.child)}</span> כיתה <span class="fld" style="min-width:90px">${esc(d.cls)}</span></p>
-        <p>לצאת ל${esc(cfg.atype)}${cfg.place?' ב'+esc(cfg.place):''} ביום ${esc(dayName(cfg.adate))} ${esc(heDate(cfg.adate))}.</p>
-        ${d.notes?`<p>הערות: ${esc(d.notes)}</p>`:''}
-        ${d.phone?`<p>טלפון ליצירת קשר: ${esc(d.phone)}</p>`:''}
-        <div class="sigline">
-          <div>שם ההורה: <span class="fld">${esc(d.pname)}</span></div>
-          <div style="display:flex; align-items:flex-end; gap:10px">חתימת ההורה:
-            <span class="sigbox"><img src="${d.sig}"></span></div>
-        </div>
-      </div>`;
-  }
-
-  async function exportPDF(){
-    const d = {child:$('#child').value.trim(), cls:$('#cls').value.trim(), pname:$('#pname').value.trim(),
-               phone:$('#phone').value.trim(), notes:$('#notes').value.trim()};
+    </div>`;
+  if(onBack) $('#back').onclick = onBack;
+  setupSig(); $('#clr').onclick = clearSig;
+  $('#submit').onclick = async () => {
+    const sub = {eventId:eid, folderId:ev.folderId,
+      child:norm($('#child').value), cls:norm($('#cls').value), pname:norm($('#pname').value),
+      phone:norm($('#phone').value), notes:norm($('#notes').value), submittedAt:nowISO()};
     const msg = $('#msg');
-    if(!d.child || !d.pname){ msg.innerHTML='<div class="err">נא למלא את שם התלמיד/ה ואת שם ההורה.</div>'; return; }
-    if(!hasSig){ msg.innerHTML='<div class="err">נא לחתום במסגרת החתימה.</div>'; return; }
-    if(!$('#agree').checked){ msg.innerHTML='<div class="err">נא לסמן את תיבת האישור.</div>'; return; }
-    msg.innerHTML='<div class="note">מכין את המכתב…</div>';
-    d.sig = cv.toDataURL('image/png');
-    buildLetter(d);
-    await new Promise(r=>setTimeout(r,60));
+    if(!sub.child || !sub.pname) return msg.innerHTML='<div class="err">נא למלא את שם התלמיד/ה ואת שם ההורה.</div>';
+    if(!shas) return msg.innerHTML='<div class="err">נא לחתום במסגרת החתימה.</div>';
+    if(!$('#agree').checked) return msg.innerHTML='<div class="err">נא לסמן את תיבת האישור.</div>';
+    msg.innerHTML='<div class="note">מגיש…</div>';
+    sub.sig = sigData();
+    const sid = rid('s_'); sub._id = sid;
     try{
-      const canvas = await html2canvas($('#letter'), {scale:2, backgroundColor:'#ffffff'});
-      const {jsPDF} = window.jspdf;
-      const pdf = new jsPDF('p','mm','a4');
-      const w = 210, h = canvas.height*w/canvas.width;
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,w,Math.min(h,297));
-      pdf.save(`אישור_הורים_${d.child}.pdf`);
-      msg.innerHTML='<div class="ok">המכתב נוצר והורד ✓ אפשר לשלוח אותו למורה.</div>';
+      const body = Object.assign({}, sub); delete body._id;
+      await Store.set('submissions/'+sid, body);
     }catch(e){
-      msg.innerHTML='<div class="err">ההורדה נכשלה. נסו לפתוח את הקובץ בדפדפן רגיל.</div>';
+      return msg.innerHTML='<div class="err">ההגשה נכשלה. נסו שוב, או פנו למורה.</div>';
     }
-  }
-
-  mode==='parent' ? parentView() : teacherView();
+    msg.innerHTML = `<div class="ok"><b>האישור הוגש למורה ✓</b><br>
+      התקבל בתיקיית הכיתה בשם ${esc(sub.child)}. אפשר גם לשמור עותק אישי.
+      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="mine">שמירת עותק PDF</button></div></div>`;
+    $('#submit').disabled = true;
+    $('#mine').onclick = async () => { $('#mine').textContent='…'; try{ await downloadSlip(ev, sub); }catch(e){} $('#mine').textContent='שמירת עותק PDF'; };
+  };
+}
 })();
 </script>
+</body>
+</html>
