@@ -106,13 +106,12 @@ canvas#sig{width:100%; height:165px; display:block; touch-action:none; border-ra
      ======================================================================= -->
 <script>
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBzOVRusCmGeTp2GRd5nMIs6hYuReO2N6g",
-  authDomain: "school-slips.firebaseapp.com",
-  projectId: "school-slips",
-  storageBucket: "school-slips.firebasestorage.app",
-  messagingSenderId: "790484475554",
-  appId: "1:790484475554:web:c3d1685c16d48b395781fb",
-  measurementId: "G-69JRX49BL2"
+  apiKey:            "הדביקו כאן apiKey",
+  authDomain:        "your-project.firebaseapp.com",
+  projectId:         "your-project",
+  storageBucket:     "your-project.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "1:000000000000:web:xxxxxxxxxxxx"
 };
 </script>
 
@@ -520,7 +519,18 @@ async function teacherPage(folderId, asAdmin){
   const subs = await Store.list('submissions','folderId',folderId);
   const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
 
+  const froster = (folder && folder.roster) || [];
+
   app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + `
+    <div class="card">
+      <h2>רשימת התלמידים בכיתה</h2>
+      <p class="sub">מקלידים פעם אחת — ומכאן והלאה הרשימה נטענת אוטומטית לכל אירוע חדש.</p>
+      <label>שורה לכל תלמיד/ה</label>
+      <textarea id="froster" style="min-height:150px" placeholder="יעל לוי&#10;דניאל כהן&#10;נועה ברק">${esc(froster.join('\n'))}</textarea>
+      <div class="row mt"><button class="btn" id="saveRoster">שמירת הרשימה</button>
+        <span class="note" id="rcount">${froster.length} תלמידים ברשימה</span></div>
+      <div id="rmsg"></div>
+    </div>
     <div class="card">
       <h2>אירועים בתיקייה</h2>
       ${events.length? events.map(e=>{
@@ -532,10 +542,22 @@ async function teacherPage(folderId, asAdmin){
           <button class="btn ghost sm" data-ev="${esc(e._id)}">פתיחה</button></div>`;
       }).join('') : `<div class="empty">אין עדיין אירועים. צרו אירוע חדש למטה.</div>`}
     </div>
-    <div class="card"><h2>אירוע חדש</h2>${eventForm()}
+    <div class="card"><h2>אירוע חדש</h2>${eventForm(froster)}
       <div class="row mt"><button class="btn" id="create">יצירת האירוע וקבלת קישור</button></div><div id="msg"></div></div>`;
   bindOut();
   if(asAdmin) $('#back').onclick = () => adminPage('folders');
+
+  $('#saveRoster').onclick = async () => {
+    const list = $('#froster').value.split('\n').map(norm).filter(Boolean);
+    const f = Object.assign({}, folder||{}); delete f._id; f.roster = list;
+    await Store.set('folders/'+folderId, f);
+    folder.roster = list;
+    $('#rcount').textContent = list.length+' תלמידים ברשימה';
+    $('#rmsg').innerHTML = '<div class="ok">הרשימה נשמרה ✓ היא תיטען אוטומטית לכל אירוע חדש.</div>';
+    const er = $('#roster'); if(er && !er.value.trim()) er.value = list.join('\n');
+  };
+  const useBtn = $('#useRoster');
+  if(useBtn) useBtn.onclick = () => { $('#roster').value = ($('#froster').value.split('\n').map(norm).filter(Boolean)).join('\n'); };
   app.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>eventPage(b.dataset.ev, folderId, asAdmin));
 
   $('#create').onclick = async () => {
@@ -550,7 +572,8 @@ async function teacherPage(folderId, asAdmin){
   };
 }
 
-function eventForm(){
+function eventForm(froster){
+  froster = froster || [];
   const today = new Date().toISOString().slice(0,10);
   return `<div class="grid">
     <div class="full"><label>שם בית הספר (שורה 1)</label><input id="s1" value="בית הספר הממלכתי"></div>
@@ -568,8 +591,12 @@ function eventForm(){
       <div class="note" style="margin-top:5px">אפשר להשתמש ב־{יום} {תאריך} {שעות} {מקום}.</div></div>
     <div class="full"><label>חתימת השולח</label><input id="from" value="תודה, מחנכות ג'"></div>
     <div class="full"><label>הערות להורים (לא חובה)</label><input id="extra" placeholder="יש להצטייד בכובע, מים ונעליים סגורות"></div>
-    <div class="full"><label>רשימת התלמידים (שורה לכל תלמיד) — לצורך מעקב מי מילא ומי לא</label>
-      <textarea id="roster" placeholder="יעל לוי&#10;דניאל כהן&#10;..."></textarea></div>
+    <div class="full"><label>רשימת התלמידים באירוע — לצורך מעקב מי מילא ומי לא</label>
+      <textarea id="roster" placeholder="יעל לוי&#10;דניאל כהן&#10;...">${esc(froster.join('\n'))}</textarea>
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" id="useRoster" type="button">טעינה מחדש מרשימת הכיתה</button>
+        <span class="note">${froster.length?'נטענה אוטומטית רשימת הכיתה ('+froster.length+' תלמידים). אפשר להסיר שמות שאינם משתתפים באירוע זה.':'לא הוגדרה עדיין רשימת כיתה למעלה — אפשר להקליד ידנית.'}</span>
+      </div></div>
   </div>`;
 }
 
@@ -614,6 +641,7 @@ async function eventPage(eid, folderId, asAdmin){
         <tr><th>תלמיד/ה</th><th>סטטוס</th><th>זמן הגשה</th><th>הורה חותם</th><th></th></tr>
         ${rosterRows}${extraRows}</table></div>`:`<div class="empty">אף הורה טרם מילא.</div>`}
       <div class="row mt">
+        <button class="btn ghost" id="sync">עדכון מרשימת הכיתה</button>
         <button class="btn ghost" id="all" ${subs.length?'':'disabled'}>הורדת כל האישורים (PDF)</button>
         <button class="btn dngr" id="reset" ${subs.length?'':'disabled'}>איפוס האישורים באירוע</button>
         <button class="btn dngr" id="delev">מחיקת האירוע</button>
@@ -633,6 +661,14 @@ async function eventPage(eid, folderId, asAdmin){
     if(!confirm('למחוק את האישור הזה?')) return;
     await Store.del('submissions/'+b.dataset.rm); eventPage(eid, folderId, asAdmin);
   });
+  $('#sync').onclick = async () => {
+    const f = await Store.get('folders/'+folderId);
+    const list = (f && f.roster) || [];
+    if(!list.length) return $('#msg').innerHTML='<div class="err">לא הוגדרה רשימת כיתה בתיקייה.</div>';
+    if(!confirm('לעדכן את רשימת התלמידים באירוע לפי רשימת הכיתה ('+list.length+' תלמידים)? האישורים שכבר הוגשו יישמרו.')) return;
+    const c = Object.assign({}, ev); delete c._id; c.roster = list;
+    await Store.set('events/'+eid, c); eventPage(eid, folderId, asAdmin);
+  };
   $('#all').onclick = async () => {
     $('#msg').innerHTML='<div class="note">מייצר קבצים…</div>';
     for(const s of subs){ try{ await downloadSlip(ev,s); }catch(e){} }
