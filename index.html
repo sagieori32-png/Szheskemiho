@@ -56,7 +56,7 @@ table{width:100%; border-collapse:collapse; font-size:14.5px}
 th,td{text-align:right; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle}
 th{font-size:12.5px; color:var(--muted); font-weight:600}
 .tag{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12.5px; font-weight:600}
-.tag.ok{background:var(--soft); color:var(--accent)}
+.tag.ok{background:var(--soft); color:var(--accent); margin:0; padding:2px 9px; font-size:12.5px; border:0}
 .tag.no{background:transparent; border:1px solid var(--line); color:var(--muted)}
 .linkbox{background:var(--soft); border:1px solid var(--line); border-radius:11px; padding:13px}
 .linkbox code{display:block; word-break:break-all; font-size:11.5px; background:var(--card); padding:8px; border-radius:7px; margin:8px 0; max-height:80px; overflow:auto}
@@ -91,12 +91,77 @@ canvas#sig{width:100%; height:165px; display:block; touch-action:none; border-ra
 #letter .sigbox{border-bottom:1px solid #000; width:220px; height:66px; display:flex; align-items:flex-end; justify-content:center}
 #letter .sigbox img{max-height:62px; max-width:100%}
 #letter .stamp{margin-top:42px; font-size:12px; color:#555; border-top:1px dashed #999; padding-top:8px}
-@media (max-width:640px){ .grid,.grid3{grid-template-columns:1fr} }
+/* ---- committees module ---- */
+.hero{text-align:center; padding:22px 16px 26px; margin-bottom:16px; border-radius:18px;
+  background:linear-gradient(160deg, color-mix(in srgb,#9fd086 45%,var(--card)), color-mix(in srgb,#ffd34d 30%,var(--card)))}
+.hero-school{font-size:13.5px; font-weight:600; color:var(--accent)}
+.hero-title{font-size:34px; font-weight:700; margin:6px 0 4px; line-height:1.15}
+.hero-title span{display:inline-block; font-size:18px; background:var(--accent); color:var(--accent-ink); padding:2px 12px; border-radius:9px; vertical-align:middle}
+.hero-sub{font-weight:600; color:var(--muted)}
+.step{display:inline-flex; width:26px; height:26px; border-radius:50%; background:var(--accent); color:var(--accent-ink); align-items:center; justify-content:center; font-size:14px; margin-inline-end:6px}
+.cgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.ccard{position:relative; background:var(--card); border:2px solid color-mix(in srgb,var(--c) 55%,var(--line)); border-radius:15px; overflow:hidden; display:flex; flex-direction:column; transition:transform .12s, box-shadow .12s}
+.ccard.click{cursor:pointer}
+.ccard.click:hover{transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.ccard.click:focus-visible{outline:3px solid var(--c); outline-offset:2px}
+.ccard.picked{border-color:var(--c); box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 35%,transparent)}
+.chead{display:flex; align-items:center; gap:8px; padding:9px 11px; background:color-mix(in srgb,var(--c) 16%,var(--card))}
+.cnum{flex:0 0 28px; height:28px; border-radius:50%; background:var(--c); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center}
+.cname{font-weight:700; font-size:16.5px; flex:1}
+.cicon{font-size:24px}
+.cdesc{padding:9px 12px; font-size:13.5px; line-height:1.55; flex:1}
+.cteach{padding:6px 12px 8px; font-size:13px; color:var(--muted); border-top:1px solid var(--line)}
+.cteach b{color:var(--ink)}
+.crank{position:absolute; top:7px; inset-inline-end:8px; background:var(--c); color:#fff; font-weight:700; padding:3px 11px; border-radius:999px; font-size:13.5px; box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.tray{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:14px}
+.slot{position:relative; border:2px dashed var(--line); border-radius:12px; padding:9px 11px; min-height:62px; background:var(--bg)}
+.slot.filled{border-style:solid; border-color:var(--c); background:color-mix(in srgb,var(--c) 12%,var(--card))}
+.slotn{display:block; font-size:12px; color:var(--muted); font-weight:600}
+.slotv{font-weight:700; font-size:15px}
+.slotv.empty-v{font-weight:400; color:var(--muted); font-size:13.5px}
+.slotx{position:absolute; top:6px; inset-inline-end:6px; border:0; background:transparent; color:var(--muted); cursor:pointer; font-size:14px}
+.sticky-submit{position:sticky; bottom:10px; z-index:5; box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.done{text-align:center}
+.done-ic{font-size:44px}
+.donelist{display:grid; gap:8px; justify-items:center}
+.cchip{display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 8px; border-radius:999px; font-size:13.5px; font-weight:600;
+  background:color-mix(in srgb,var(--c) 15%,var(--card)); border:1px solid color-mix(in srgb,var(--c) 45%,var(--line)); white-space:nowrap}
+.cchip.s{font-size:12.5px; padding:2px 8px}
+.miss{display:flex; flex-wrap:wrap; gap:6px}
+.miss span{background:var(--warnbg); color:var(--warn); border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:13px}
+.ptable td{vertical-align:top}
+.ptable select{min-width:150px; padding:6px 8px; font-size:14px}
+.tag.rk1{background:var(--soft); color:var(--accent)}
+.tag.rk2{background:color-mix(in srgb,#3484cf 16%,var(--card)); color:color-mix(in srgb,#3484cf 80%,var(--ink))}
+.tag.rk3{background:var(--warnbg); color:var(--warn)}
+.tag.rk4{background:transparent; border:1px solid var(--line); color:var(--ink)}
+.sumgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px}
+.sumbox{border:1px solid var(--line); border-inline-start:5px solid var(--c); border-radius:11px; padding:9px 11px; background:var(--card)}
+.sumbox.zero{opacity:.6}
+.sumh{display:flex; justify-content:space-between; font-weight:700}
+.sumh b{background:var(--c); color:#fff; border-radius:999px; min-width:26px; text-align:center; padding:0 7px}
+.sumn{font-size:13px; margin-top:5px; line-height:1.6}
+.cedit{border:1px solid var(--line); border-inline-start:5px solid var(--c); border-radius:11px; padding:11px; margin-bottom:10px}
+#cprint{width:794px; background:#fff; color:#000; padding:46px 52px; direction:rtl; font-family:"Assistant","Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.5}
+#cprint .po{font-size:13px; color:#2f6b4f; font-weight:700}
+#cprint h1{font-size:25px; margin:2px 0}
+#cprint .pm{color:#444; margin-bottom:16px}
+#cprint .pg{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+#cprint .pb{border:2px solid; border-radius:10px; overflow:hidden; break-inside:avoid}
+#cprint .pbh{color:#fff; font-weight:700; padding:5px 10px; font-size:15px}
+#cprint .pbh span{font-weight:400}
+#cprint .pbt{font-size:12px; color:#555; padding:4px 10px 0}
+#cprint ol{margin:4px 0 8px; padding-inline-start:28px}
+#cprint .pun{margin-top:12px; padding:8px 10px; background:#fdf4dd; border-radius:8px}
+#cprint h2{font-size:17px; margin:22px 0 8px}
+#cprint table{font-size:12.5px}
+#cprint th,#cprint td{padding:5px 6px; border-bottom:1px solid #ccc; color:#000}
+@media (max-width:640px){ .grid,.grid3{grid-template-columns:1fr} .tray{grid-template-columns:1fr} .hero-title{font-size:27px} .cedit .full{grid-column:1/-1 !important} }
 </style>
 </head>
 <body>
 <div class="wrap" id="app"><div class="card"><div class="empty">טוען…</div></div></div>
-<div class="stage"><div id="letter"></div></div>
+<div class="stage"><div id="letter"></div><div id="cprint"></div></div>
 
 <!-- =======================================================================
      הגדרות חיבור — יש למלא פעם אחת בלבד.
@@ -275,6 +340,8 @@ function sigData(){
   await Store.init();
   const m = location.hash.match(/[#&]e=([A-Za-z0-9_\-]+)/);
   if(m){ return parentPage(m[1]); }
+  const mc = location.hash.match(/[#&]c=([A-Za-z0-9_\-]+)/);
+  if(mc){ return studentPage(mc[1]); }
   const cfg = await Store.get('app/config');
   if(!cfg || !cfg.bootstrapped) return setupPage();
   let saved=null; try{ saved = sessionStorage.getItem('slips_me'); }catch(e){}
@@ -363,6 +430,7 @@ function home(){ ME.role==='admin' ? adminPage() : teacherPage(ME.folderId); }
 /* ============ admin ============ */
 async function adminPage(tab){
   tab = tab || 'teachers';
+  if(tab==='committees') return adminCommittees();
   app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען נתונים…</div></div>`;
   bindOut();
   const [users, folders, events, subs] = await Promise.all([
@@ -404,6 +472,7 @@ async function adminPage(tab){
     <div class="tabs">
       <button data-tab="teachers" class="${tab==='teachers'?'on':''}">מורים</button>
       <button data-tab="folders" class="${tab==='folders'?'on':''}">תיקיות</button>
+      <button data-tab="committees">ועדות</button>
       <button data-tab="settings" class="${tab==='settings'?'on':''}">הגדרות</button>
     </div>
     ${tab==='teachers'?`
@@ -522,7 +591,7 @@ async function teacherPage(folderId, asAdmin){
 
   const froster = (folder && folder.roster) || [];
 
-  app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + `
+  app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + folderTabs('slips') + `
     <div class="card">
       <h2>רשימת התלמידים בכיתה</h2>
       <p class="sub">מקלידים פעם אחת — ומכאן והלאה הרשימה נטענת אוטומטית לכל אירוע חדש.</p>
@@ -545,7 +614,7 @@ async function teacherPage(folderId, asAdmin){
     </div>
     <div class="card"><h2>אירוע חדש</h2>${eventForm(froster)}
       <div class="row mt"><button class="btn" id="create">יצירת האירוע וקבלת קישור</button></div><div id="msg"></div></div>`;
-  bindOut();
+  bindOut(); bindFolderTabs(folderId, asAdmin);
   if(asAdmin) $('#back').onclick = () => adminPage('folders');
 
   $('#saveRoster').onclick = async () => {
@@ -754,6 +823,398 @@ async function parentPage(eid, onBack){
     $('#mine').onclick = async () => { $('#mine').textContent='…'; try{ await downloadSlip(ev, sub); }catch(e){} $('#mine').textContent='שמירת עותק PDF'; };
   };
 }
+
+/* ================================================================
+   ועדות תלמידים — מודול בחירה ושיבוץ
+   ================================================================ */
+const C_YEAR = 'תשפ"ז';
+const C_PALETTE = ['#e0524f','#e59a12','#2e9b62','#8366d0','#3484cf','#ea7232','#1d9e84','#df4169'];
+const DEFAULT_COMMITTEES = [
+ {n:1, name:'רדיו', icon:'🎙️', color:'#ef5a5a', teacher:'אלינור',
+  desc:'ליווי הוועדה באופן שוטף, חיבור לנושאי שידור שבועיים, חיבור השידורים לחגים ומועדים בשנה, עבודה משותפת עם שדרן רדיו ירושלים – מוטי פרנסיס.'},
+ {n:2, name:'עיתון בית ספר', icon:'📰', color:'#f2a516', teacher:'תומר',
+  desc:'ליווי התלמידים הכותבים, פיתוח מדורים חדשים, לימוד עברית וכתיבה, מתן כלים מעולם התקשורת, הוצאת עיתון אחת לשבועיים.'},
+ {n:3, name:'נאמני ספרייה', icon:'📚', color:'#2e9b62', teacher:'יפה',
+  desc:'ניהול הספרייה הבית־ספרית, סידור המדפים, קבלת ספרים חדשים וקיטלוגם, ניהול השאלת הספרים לתלמידי בית הספר, עידוד קריאה – תכנון והובלת פעילויות סביב יוצרים וספרים.'},
+ {n:4, name:'הפסקות פעילות', icon:'🏀', color:'#8b6fd6', teacher:'עדי',
+  desc:'גיוון הפעילות בהפסקות, יצירת משחקים, גיבוש בין השכבות וחיבור בין השכבות הגבוהות לנמוכות. ליווי התלמידים בחשיבה על הפעילות והפעלתה.'},
+ {n:5, name:'קיימות וסביבה', icon:'🌱', color:'#3b8fd9', teacher:'יואב',
+  desc:'שמירה על מרחבי בית הספר נקיים ומכבדים. אחריות על מרחבי החוץ והפנים של בית הספר, סימון אזורים לא נקיים ומפגעי בטיחות ודיווח להנהלה. יצירת פרויקטים חדשים ברחבי בית הספר.'},
+ {n:6, name:'ועדת חוץ', icon:'🤝', color:'#8b6fd6', teacher:'תומר',
+  desc:'הצגת בית הספר בפני אורחים מבחוץ – הורים שבאים להירשם, ביקורי קבוצות וביקורי בכירים מעיריית ירושלים ומשרד החינוך.'},
+ {n:7, name:'מועדון משחקים', icon:'🎲', color:'#f07a3a', teacher:'בעז',
+  desc:'ניהול והפעלת מועדון המשחקים בבניין שכבה ב\'. שמירה על המרחב ועל הציוד. הפעלת המועדון עבור התלמידים בשוטף ובאירועי שיא.'},
+ {n:8, name:'גישור', icon:'💬', color:'#3b8fd9', teacher:'ענת',
+  desc:'סיור תלמידים בזמן ההפסקות ומציאת מוקדי חיכוך. דיווח לצוות המורים על האירועים. מפגש עם התלמידים במוקד החיכוך וניסיון לתת מענה בעזרת כלים מעולם הגישור.'},
+ {n:9, name:'עיצוב מרחבים', icon:'🎨', color:'#1fa58a', teacher:'איילת',
+  desc:'קישוט פני בית הספר, תליית יצירות אמנות של התלמידים, הקמת תערוכות מתחלפות בעזרת התלמידים בוועדה.'},
+ {n:10, name:'חגים ומועדים', icon:'🎉', color:'#e5466b', teacher:'אסף',
+  desc:'יצירת פעילויות לשכבות השונות לפי מועדי השנה – יצירה והובלה של פעילויות מגוונות בכיתות, בשכבות וברחבי בית הספר. חיבור לטקסים ולנושאי השנה.'},
+ {n:11, name:'חממה', icon:'🪴', color:'#2e9b62', teacher:'עינת פ.',
+  desc:'אחריות על הפעלת החממה ועל השמירה עליה. השקיה, דישון והצמחה של שתילים לטובת למידה ולטובת עיצוב מרחבי החוץ של בית הספר.'},
+ {n:12, name:'בוקר של חיוך', icon:'😊', color:'#f2a516', teacher:'יובל',
+  desc:'הפעלות בבוקר, פתיחת יום ברמת הכיתה, השכבה או בית הספר על פי נושאים נבחרים.'},
+ {n:13, name:'מטבח', icon:'🧑‍🍳', color:'#e5466b', teacher:'חדווה',
+  desc:'אחריות על המטבח החינוכי-טיפולי בבית הספר. שמירה על הניקיון והבטיחות, רכישת ציוד ומצרכים על פי צורך, ניהול מערכת השעות במטבח מול צוות המורים והמטפלים, הובלה של ימי שיא קולינריים לאורך השנה.'},
+ {n:14, name:'מיומנויות דיגיטליות', icon:'💻', color:'#3b8fd9', teacher:'נס',
+  desc:'תלמידים ילמדו ויתרגלו מיומנויות מחשב בסיסיות, ובהמשך יוכלו לשמש כ"נאמני מחשבים" ולסייע לתלמידים אחרים.'}
+];
+
+async function getCommittees(){
+  try{ const d = await Store.get('committees/list'); if(d && Array.isArray(d.items) && d.items.length) return d.items; }catch(e){}
+  return DEFAULT_COMMITTEES;
+}
+const cFind = (list,n) => list.find(c=>String(c.n)===String(n));
+const cColor = c => (c && c.color) || C_PALETTE[((c&&c.n)||0) % C_PALETTE.length];
+function cChip(c, small){
+  if(!c) return '<span class="note">—</span>';
+  return `<span class="cchip${small?' s':''}" style="--c:${cColor(c)}"><span class="ci">${esc(c.icon||'•')}</span>${esc(c.name)}</span>`;
+}
+function folderTabs(on){
+  return `<div class="tabs">
+    <button data-ftab="slips" class="${on==='slips'?'on':''}">אישורי הורים</button>
+    <button data-ftab="committees" class="${on==='committees'?'on':''}">ועדות תלמידים</button></div>`;
+}
+function bindFolderTabs(folderId, asAdmin){
+  app.querySelectorAll('[data-ftab]').forEach(b=>b.onclick=()=>
+    b.dataset.ftab==='committees' ? committeesTeacher(folderId, asAdmin) : teacherPage(folderId, asAdmin));
+}
+function committeeCard(c, rank, clickable){
+  return `<div class="ccard${rank?' picked':''}${clickable?' click':''}" style="--c:${cColor(c)}" data-cn="${esc(c.n)}" ${clickable?'role="button" tabindex="0"':''}>
+    <div class="chead"><span class="cnum">${esc(c.n)}</span><span class="cname">${esc(c.name)}</span><span class="cicon">${esc(c.icon||'')}</span></div>
+    <div class="cdesc">${esc(c.desc||'')}</div>
+    <div class="cteach">מורה מלווה: <b>${esc(c.teacher||'')}</b></div>
+    ${rank?`<span class="crank">עדיפות ${rank}</span>`:''}
+  </div>`;
+}
+const RANK_WORD = ['','ראשונה','שנייה','שלישית'];
+
+/* ---------------- student form (#c=folderId) ---------------- */
+async function studentPage(folderId, onBack){
+  app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
+  const folder = await Store.get('folders/'+folderId);
+  if(!folder){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
+  const cfg = await Store.get('app/config') || {};
+  const list = await getCommittees();
+  const back = onBack ? '<button class="btn ghost sm" id="back">חזרה</button>' : '';
+  if(folder.cform && folder.cform.closed){
+    app.innerHTML = `<div class="topbar"><div class="brand">ועדות תלמידים ${C_YEAR}</div>${back}</div>
+      <div class="card"><h2>הטופס נסגר למילוי</h2><p class="sub">אם עוד לא בחרתם ועדה — פנו למורה שלכם.</p></div>`;
+    if(onBack) $('#back').onclick = onBack; return;
+  }
+  const roster = folder.roster || [];
+  let picks = [];
+  app.innerHTML = `
+    <div class="topbar">${back}</div>
+    <div class="hero">
+      <div class="hero-school">${esc(cfg.org||'בית הספר הממלכתי הנרייטה סאלד ירושלים')}</div>
+      <h1 class="hero-title">ועדות תלמידים <span>${C_YEAR}</span></h1>
+      <div class="hero-sub">יוזמים · משפיעים · יוצרים יחד!</div>
+    </div>
+    ${modeBanner()}
+    <div class="card">
+      <h2><span class="step">1</span> הפרטים שלי</h2>
+      <div class="grid">
+        <div><label>שם התלמיד/ה</label><input id="child" list="rl" placeholder="שם פרטי ושם משפחה" autocomplete="off">
+          <datalist id="rl">${roster.map(r=>`<option value="${esc(r)}">`).join('')}</datalist></div>
+        <div><label>כיתה</label><input id="cls" value="${esc(folder.name||'')}"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="step">2</span> בחרו 3 ועדות לפי הסדר</h2>
+      <p class="sub">לוחצים על הוועדה שהכי רוצים — היא תהיה עדיפות 1. אחר כך על השנייה ועל השלישית. לחיצה נוספת מבטלת.</p>
+      <div class="tray" id="tray"></div>
+      <div class="cgrid" id="cgrid"></div>
+    </div>
+    <div class="card sticky-submit">
+      <div class="row"><button class="btn" id="submit" style="flex:1">שליחת הבחירה למורה</button></div>
+      <div id="msg"></div>
+    </div>`;
+  if(onBack) $('#back').onclick = onBack;
+
+  const draw = () => {
+    $('#tray').innerHTML = [1,2,3].map(i=>{
+      const c = cFind(list, picks[i-1]);
+      return `<div class="slot${c?' filled':''}" style="${c?'--c:'+cColor(c):''}">
+        <span class="slotn">עדיפות ${i}</span>
+        ${c?`<span class="slotv">${esc(c.icon||'')} ${esc(c.name)}</span><button class="slotx" data-rm="${esc(c.n)}" aria-label="הסרה">✕</button>`
+           :'<span class="slotv empty-v">טרם נבחרה</span>'}
+      </div>`;
+    }).join('');
+    $('#cgrid').innerHTML = list.map(c=>{ const i = picks.findIndex(p=>String(p)===String(c.n)); return committeeCard(c, i>-1?i+1:0, true); }).join('');
+    app.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{ picks = picks.filter(p=>String(p)!==b.dataset.rm); draw(); });
+    app.querySelectorAll('.ccard.click').forEach(el=>{
+      const act = () => {
+        const n = el.dataset.cn, i = picks.findIndex(p=>String(p)===n);
+        if(i>-1) picks.splice(i,1);
+        else if(picks.length<3) picks.push(isNaN(+n)?n:+n);
+        else { $('#msg').innerHTML='<div class="err">כבר בחרתם 3 ועדות. כדי להחליף — לחצו על אחת שבחרתם כדי לבטל אותה.</div>'; return; }
+        $('#msg').innerHTML=''; draw();
+      };
+      el.onclick = act; el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } };
+    });
+  };
+  draw();
+
+  $('#submit').onclick = async () => {
+    const child = norm($('#child').value), cls = norm($('#cls').value), msg = $('#msg');
+    if(!child) return msg.innerHTML='<div class="err">נא לכתוב את השם המלא.</div>';
+    if(picks.length<3) return msg.innerHTML=`<div class="err">נא לבחור 3 ועדות (נבחרו ${picks.length}).</div>`;
+    msg.innerHTML='<div class="note">שולח…</div>'; $('#submit').disabled = true;
+    try{
+      const existing = (await Store.list('picks','folderId',folderId)).find(p=>norm(p.child)===child);
+      const id = existing ? existing._id : rid('p_');
+      const rec = {folderId, child, cls, p1:picks[0], p2:picks[1], p3:picks[2], submittedAt:nowISO(),
+        assigned: existing ? (existing.assigned==null?null:existing.assigned) : null};
+      await Store.set('picks/'+id, rec);
+    }catch(e){ $('#submit').disabled=false; return msg.innerHTML='<div class="err">השליחה נכשלה. נסו שוב או פנו למורה.</div>'; }
+    app.querySelector('.sticky-submit').remove();
+    window.scrollTo({top:0, behavior:'smooth'});
+    const done = document.createElement('div'); done.className='card done';
+    done.innerHTML = `<div class="done-ic">🎉</div><h2>הבחירה נשלחה למורה!</h2>
+      <p class="sub">תודה ${esc(child)}. אלה הוועדות שבחרת:</p>
+      <div class="donelist">${picks.map((p,i)=>`<div><span class="note">עדיפות ${i+1}</span> ${cChip(cFind(list,p))}</div>`).join('')}</div>
+      <p class="note" style="margin-top:12px">רוצים לשנות? אפשר למלא שוב עם אותו שם — הבחירה החדשה תחליף את הקודמת.</p>`;
+    app.querySelector('.hero').after(done);
+  };
+}
+
+/* ---------------- teacher: committees tab ---------------- */
+async function committeesTeacher(folderId, asAdmin){
+  if(!folderId){ app.innerHTML = header('ועדות תלמידים') + `<div class="card"><div class="empty">לא שויכה לך תיקייה. פנו למנהל המערכת.</div></div>`; return bindOut(); }
+  app.innerHTML = header('טוען…') + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const folder = await Store.get('folders/'+folderId) || {};
+  const list = await getCommittees();
+  let picks = (await Store.list('picks','folderId',folderId)).sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'));
+  const roster = folder.roster || [];
+  const cform = folder.cform || {};
+  const link = location.origin + location.pathname + location.search + '#c=' + folderId;
+  const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
+  const saveFolder = async patch => { const f = Object.assign({}, await Store.get('folders/'+folderId) || {}); f.cform = Object.assign({}, f.cform||{}, patch); await Store.set('folders/'+folderId, f); Object.assign(cform, patch); };
+  const savePick = async p => { const c = Object.assign({}, p); delete c._id; await Store.set('picks/'+p._id, c); };
+
+  const missing = () => roster.filter(r=>!picks.some(p=>norm(p.child)===norm(r)));
+  const gotRank = p => p.assigned==null ? 0 : (String(p.assigned)===String(p.p1)?1:String(p.assigned)===String(p.p2)?2:String(p.assigned)===String(p.p3)?3:4);
+  const rankTag = p => { const r = gotRank(p); return r===0?'<span class="tag no">לא שובץ</span>':r===4?'<span class="tag rk4">שיבוץ ידני</span>':`<span class="tag rk${r}">עדיפות ${r}</span>`; };
+  const options = sel => `<option value="">— בחירת ועדה —</option>` + list.map(c=>`<option value="${esc(c.n)}" ${String(sel)===String(c.n)?'selected':''}>${esc(c.n)}. ${esc(c.name)}</option>`).join('');
+
+  const summaryHtml = () => {
+    const un = picks.filter(p=>p.assigned==null);
+    const by = list.map(c=>({c, kids:picks.filter(p=>String(p.assigned)===String(c.n))}));
+    return `<div class="sumgrid">${by.map(({c,kids})=>`
+      <div class="sumbox${kids.length?'':' zero'}" style="--c:${cColor(c)}">
+        <div class="sumh"><span>${esc(c.icon||'')} ${esc(c.name)}</span><b>${kids.length}</b></div>
+        <div class="sumn">${kids.map(k=>esc(k.child)).join(' · ')||'<span class="note">אין עדיין</span>'}</div></div>`).join('')}
+    </div>${un.length?`<div class="warnbox" style="margin-top:12px">עדיין ללא שיבוץ (${un.length}): ${un.map(p=>esc(p.child)).join(' · ')}</div>`:(picks.length?'<div class="ok">כל התלמידים שבחרו שובצו ✓</div>':'')}`;
+  };
+  const rowHtml = p => `<tr data-pid="${esc(p._id)}">
+      <td><b>${esc(p.child)}</b><div class="note">${esc(fmtTime(p.submittedAt))}</div></td>
+      <td>${cChip(cFind(list,p.p1),1)}</td><td>${cChip(cFind(list,p.p2),1)}</td><td>${cChip(cFind(list,p.p3),1)}</td>
+      <td><select class="asel" data-as="${esc(p._id)}">${options(p.assigned)}</select><div class="rk" style="margin-top:4px">${rankTag(p)}</div></td>
+      <td><button class="btn dngr sm" data-delp="${esc(p._id)}" title="מחיקת הבחירה">✕</button></td></tr>`;
+
+  app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('committees') + `
+    <div class="card">
+      <h2>קישור לתלמידי הכיתה</h2>
+      <p class="sub">שולחים את הקישור לתלמידים. כל תלמיד/ה ממלא/ת שם, כיתה ו־3 עדיפויות, והבחירה נכנסת רק לתיקייה הזו.</p>
+      <div class="linkbox">
+        <code>${esc(link)}</code>
+        <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
+          <button class="btn ghost sm" id="prev">תצוגה מקדימה</button>
+          <button class="btn ghost sm" id="tog">${cform.closed?'פתיחת הטופס למילוי':'סגירת הטופס למילוי'}</button>
+          <span class="tag ${cform.closed?'no':'ok'}">${cform.closed?'סגור':'פתוח למילוי'}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>מי מילא · ${picks.length}${roster.length?' מתוך '+roster.length:''}</h2>
+      ${roster.length? (missing().length? `<p class="sub" style="margin-bottom:6px">טרם מילאו:</p><div class="miss">${missing().map(m=>`<span>${esc(m)}</span>`).join('')}</div>` : '<div class="ok" style="margin-top:0">כל תלמידי הכיתה מילאו ✓</div>')
+        : '<p class="note">כדי לראות מי עוד לא מילא — הגדירו רשימת תלמידים בלשונית "אישורי הורים".</p>'}
+    </div>
+    <div class="card">
+      <h2>שיבוץ לוועדות</h2>
+      <div class="row" style="align-items:flex-end; margin-bottom:12px">
+        <div style="width:210px"><label>מקסימום תלמידים מהכיתה בכל ועדה</label><input id="cap" type="number" min="1" placeholder="ללא הגבלה" value="${esc(cform.cap||'')}"></div>
+        <button class="btn" id="auto" ${picks.length?'':'disabled'}>שיבוץ אוטומטי לפי העדיפויות</button>
+        <button class="btn ghost" id="clear" ${picks.length?'':'disabled'}>ניקוי כל השיבוצים</button>
+      </div>
+      <p class="note" style="margin:0 0 12px">השיבוץ האוטומטי ממלא קודם את עדיפות 1 של כולם; אם ועדה מלאה — עובר לעדיפות 2 ואחר כך 3. שיבוצים שכבר נקבעו נשמרים. אפשר לשנות כל שיבוץ ידנית מהרשימה.</p>
+      ${picks.length?`<div class="scroll"><table class="ptable"><tr><th>תלמיד/ה</th><th>עדיפות 1</th><th>עדיפות 2</th><th>עדיפות 3</th><th>שיבוץ</th><th></th></tr>
+        ${picks.map(rowHtml).join('')}</table></div>`:'<div class="empty">עדיין לא התקבלו בחירות. שלחו את הקישור לתלמידים.</div>'}
+      <div id="amsg"></div>
+      <h3>הוספה ידנית (לתלמיד/ה שלא מילא/ה)</h3>
+      <div class="row"><input id="mname" placeholder="שם התלמיד/ה" style="flex:1; min-width:160px" list="mrl">
+        <datalist id="mrl">${missing().map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+        <select id="mcom" style="flex:1; min-width:160px">${options('')}</select>
+        <button class="btn ghost" id="madd">הוספה</button></div>
+    </div>
+    <div class="card"><h2>סיכום לפי ועדות</h2><div id="sum">${summaryHtml()}</div></div>
+    <div class="card">
+      <h2>הפקת פלט</h2>
+      <p class="sub">דף מסודר של שיבוץ הכיתה לוועדות — להדפסה, לשליחה למורים המלווים או לתיוק.</p>
+      <div class="row"><button class="btn" id="pdf" ${picks.length?'':'disabled'}>הורדת PDF</button>
+        <button class="btn ghost" id="csv" ${picks.length?'':'disabled'}>הורדת קובץ Excel (CSV)</button></div>
+      <div id="emsg"></div>
+    </div>`;
+  bindOut(); bindFolderTabs(folderId, asAdmin);
+  if(asAdmin) $('#back').onclick = () => adminPage('folders');
+  const refreshSum = () => { $('#sum').innerHTML = summaryHtml(); };
+  const reload = () => committeesTeacher(folderId, asAdmin);
+
+  $('#copy').onclick = async () => { try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }catch(e){ $('#copy').textContent='סמנו והעתיקו ידנית'; } };
+  $('#prev').onclick = () => studentPage(folderId, reload);
+  $('#tog').onclick = async () => { await saveFolder({closed:!cform.closed}); reload(); };
+  app.querySelectorAll('[data-as]').forEach(s=>s.onchange=async()=>{
+    const p = picks.find(x=>x._id===s.dataset.as); p.assigned = s.value===''?null:(isNaN(+s.value)?s.value:+s.value);
+    await savePick(p); s.parentElement.querySelector('.rk').innerHTML = rankTag(p); refreshSum();
+  });
+  app.querySelectorAll('[data-delp]').forEach(b=>b.onclick=async()=>{
+    const p = picks.find(x=>x._id===b.dataset.delp); if(!confirm('למחוק את הבחירה של '+p.child+'?')) return;
+    await Store.del('picks/'+p._id); reload();
+  });
+  $('#auto').onclick = async () => {
+    const capRaw = parseInt($('#cap').value,10); const cap = capRaw>0 ? capRaw : Infinity;
+    await saveFolder({cap: capRaw>0?capRaw:''});
+    const cnt = {}; picks.forEach(p=>{ if(p.assigned!=null) cnt[p.assigned]=(cnt[p.assigned]||0)+1; });
+    const queue = picks.filter(p=>p.assigned==null).sort((a,b)=>(a.submittedAt||'').localeCompare(b.submittedAt||''));
+    const changed = [];
+    for(const key of ['p1','p2','p3']){
+      for(const p of queue){
+        if(p.assigned!=null || p[key]==null) continue;
+        if((cnt[p[key]]||0) < cap){ p.assigned = p[key]; cnt[p[key]]=(cnt[p[key]]||0)+1; changed.push(p); }
+      }
+    }
+    for(const p of changed) await savePick(p);
+    reload();
+  };
+  $('#clear').onclick = async () => {
+    if(!confirm('לנקות את כל השיבוצים בכיתה? הבחירות של התלמידים יישמרו.')) return;
+    for(const p of picks){ if(p.assigned!=null){ p.assigned=null; await savePick(p);} } reload();
+  };
+  $('#madd').onclick = async () => {
+    const n = norm($('#mname').value), v = $('#mcom').value;
+    if(!n) return $('#amsg').innerHTML='<div class="err">נא להזין שם.</div>';
+    if(picks.some(p=>norm(p.child)===n)) return $('#amsg').innerHTML='<div class="err">התלמיד/ה כבר ברשימה — אפשר לשנות את השיבוץ בטבלה.</div>';
+    const a = v===''?null:(isNaN(+v)?v:+v);
+    await Store.set('picks/'+rid('p_'), {folderId, child:n, cls:folder.name||'', p1:null, p2:null, p3:null, assigned:a, manual:true, submittedAt:nowISO()});
+    reload();
+  };
+  $('#csv').onclick = async () => {
+    const rows = [['שם התלמיד/ה','כיתה','עדיפות 1','עדיפות 2','עדיפות 3','שובץ/ה לוועדה','מורה מלווה','עדיפות שהתקבלה']];
+    picks.forEach(p=>{ const a=cFind(list,p.assigned), r=gotRank(p);
+      rows.push([p.child, p.cls||folder.name||'', (cFind(list,p.p1)||{}).name||'', (cFind(list,p.p2)||{}).name||'', (cFind(list,p.p3)||{}).name||'', a?a.name:'', a?a.teacher:'', r===0?'לא שובץ':r===4?'ידני':String(r)]); });
+    await saveFile(`ועדות_${(folder.name||'כיתה').replace(/\s+/g,'_')}.csv`, csvBlob(rows));
+    $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>';
+  };
+  $('#pdf').onclick = async () => {
+    $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
+    try{ await saveFile(`שיבוץ_ועדות_${(folder.name||'כיתה').replace(/\s+/g,'_')}.pdf`, await committeesPdf(folder, list, picks)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
+  };
+}
+
+function csvBlob(rows){
+  const q = v => { v = String(v==null?'':v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  return new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')], {type:'text/csv;charset=utf-8'});
+}
+
+async function committeesPdf(folder, list, picks){
+  const cfg = await Store.get('app/config') || {};
+  const el = document.getElementById('cprint');
+  const groups = list.map(c=>({c, kids:picks.filter(p=>String(p.assigned)===String(c.n))})).filter(g=>g.kids.length);
+  const un = picks.filter(p=>p.assigned==null);
+  const rk = p => p.assigned==null?'—':String(p.assigned)===String(p.p1)?'1':String(p.assigned)===String(p.p2)?'2':String(p.assigned)===String(p.p3)?'3':'ידני';
+  el.innerHTML = `
+    <div class="ph"><div><div class="po">${esc(cfg.org||'')}</div><h1>שיבוץ לוועדות תלמידים ${C_YEAR}</h1>
+      <div class="pm">כיתה: <b>${esc(folder.name||'')}</b> · ${picks.length} תלמידים · הופק ${esc(new Date().toLocaleDateString('he-IL'))}</div></div></div>
+    <div class="pg">${groups.map(g=>`<div class="pb" style="border-color:${cColor(g.c)}">
+      <div class="pbh" style="background:${cColor(g.c)}">${esc(g.c.name)} <span>(${g.kids.length})</span></div>
+      <div class="pbt">מורה מלווה: ${esc(g.c.teacher||'')}</div>
+      <ol>${g.kids.map(k=>`<li>${esc(k.child)}</li>`).join('')}</ol></div>`).join('')}</div>
+    ${un.length?`<div class="pun">ללא שיבוץ: ${un.map(p=>esc(p.child)).join(' · ')}</div>`:''}
+    <h2>פירוט הבחירות</h2>
+    <table><tr><th>#</th><th>תלמיד/ה</th><th>עדיפות 1</th><th>עדיפות 2</th><th>עדיפות 3</th><th>שובץ/ה ל</th><th>עדיפות</th></tr>
+      ${picks.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.child)}</td><td>${esc((cFind(list,p.p1)||{}).name||'—')}</td><td>${esc((cFind(list,p.p2)||{}).name||'—')}</td><td>${esc((cFind(list,p.p3)||{}).name||'—')}</td><td><b>${esc((cFind(list,p.assigned)||{}).name||'—')}</b></td><td>${rk(p)}</td></tr>`).join('')}</table>`;
+  await new Promise(r=>setTimeout(r,80));
+  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff'});
+  const {jsPDF} = window.jspdf; const pdf = new jsPDF('p','mm','a4');
+  const pxPerPage = Math.floor(canvas.width * 297/210);
+  for(let y=0, first=true; y<canvas.height; y+=pxPerPage, first=false){
+    const h = Math.min(pxPerPage, canvas.height-y);
+    const part = document.createElement('canvas'); part.width = canvas.width; part.height = h;
+    const ctx = part.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,part.width,h); ctx.drawImage(canvas, 0, -y);
+    if(!first) pdf.addPage();
+    pdf.addImage(part.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,h*210/canvas.width);
+  }
+  return pdf.output('blob');
+}
+
+/* ---------------- admin: committees tab ---------------- */
+async function adminCommittees(){
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const list = (await getCommittees()).map(c=>Object.assign({}, c));
+  const [folders, picks] = await Promise.all([Store.list('folders'), Store.list('picks')]);
+  const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'';
+  const tabsBar = `<div class="tabs">
+      <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
+      <button data-tab="committees" class="on">ועדות</button><button data-tab="settings">הגדרות</button></div>`;
+  const overview = list.map(c=>{
+    const kids = picks.filter(p=>String(p.assigned)===String(c.n));
+    const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
+    return `<div class="sumbox${kids.length?'':' zero'}" style="--c:${cColor(c)}">
+      <div class="sumh"><span>${esc(c.icon||'')} ${esc(c.name)}</span><b>${kids.length}</b></div>
+      <div class="note">מורה: ${esc(c.teacher||'')} · ${demand} בחרו כעדיפות 1</div>
+      <div class="sumn">${kids.map(k=>esc(k.child)+' <span class="note">('+esc(k.cls||fname(k.folderId))+')</span>').join(' · ')||'<span class="note">אין עדיין משובצים</span>'}</div></div>`;
+  }).join('');
+  const editRow = (c,i) => `<div class="cedit" style="--c:${cColor(c)}">
+      <div class="grid3">
+        <div><label>מס'</label><input data-f="n" data-i="${i}" value="${esc(c.n)}"></div>
+        <div><label>שם הוועדה</label><input data-f="name" data-i="${i}" value="${esc(c.name)}"></div>
+        <div><label>מורה מלווה</label><input data-f="teacher" data-i="${i}" value="${esc(c.teacher||'')}"></div>
+        <div><label>אייקון (אימוג׳י)</label><input data-f="icon" data-i="${i}" value="${esc(c.icon||'')}"></div>
+        <div class="full" style="grid-column:2/-1"><label>תיאור</label><textarea data-f="desc" data-i="${i}" style="min-height:58px">${esc(c.desc||'')}</textarea></div>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn dngr sm" data-rmc="${i}">הסרת הוועדה</button></div></div>`;
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + tabsBar + `
+    <div class="card">
+      <h2>תמונת מצב בית־ספרית · ${picks.length} תלמידים בחרו</h2>
+      <p class="sub">כמה תלמידים שובצו לכל ועדה מכל הכיתות — נוח להעביר למורים המלווים.</p>
+      <div class="sumgrid">${overview}</div>
+      <div class="row mt"><button class="btn ghost" id="allcsv" ${picks.length?'':'disabled'}>הורדת שיבוץ כל בית הספר (CSV)</button></div>
+    </div>
+    <div class="card">
+      <h2>רשימת הוועדות</h2>
+      <p class="sub">זו הרשימה שהתלמידים רואים בטופס. שינויים נשמרים לכל הכיתות.</p>
+      <div id="clist">${list.map(editRow).join('')}</div>
+      <div class="row mt"><button class="btn ghost" id="addc">הוספת ועדה</button><button class="btn" id="savec">שמירת הרשימה</button></div>
+      <div id="msg"></div>
+    </div>`;
+  bindOut();
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():adminPage(b.dataset.tab));
+  const collect = () => app.querySelectorAll('[data-f]').forEach(inp=>{ const c=list[+inp.dataset.i]; const v=inp.value.trim(); c[inp.dataset.f] = inp.dataset.f==='n' ? (isNaN(+v)||v===''?v:+v) : v; });
+  const redraw = () => { $('#clist').innerHTML = list.map(editRow).join(''); bindRm(); };
+  const bindRm = () => app.querySelectorAll('[data-rmc]').forEach(b=>b.onclick=()=>{ collect(); const c=list[+b.dataset.rmc];
+    if(picks.some(p=>[p.p1,p.p2,p.p3,p.assigned].map(String).includes(String(c.n))) && !confirm('יש תלמידים שבחרו בוועדה הזו. להסיר בכל זאת?')) return;
+    list.splice(+b.dataset.rmc,1); redraw(); });
+  bindRm();
+  $('#addc').onclick = () => { collect(); const n = Math.max(0,...list.map(c=>+c.n||0))+1; list.push({n, name:'', teacher:'', icon:'⭐', desc:'', color:C_PALETTE[n%C_PALETTE.length]}); redraw(); };
+  $('#savec').onclick = async () => {
+    collect();
+    if(list.some(c=>!c.name || c.n==='' )) return $('#msg').innerHTML='<div class="err">לכל ועדה צריך מספר ושם.</div>';
+    const ns = list.map(c=>String(c.n)); if(new Set(ns).size!==ns.length) return $('#msg').innerHTML='<div class="err">יש שתי ועדות עם אותו מספר.</div>';
+    list.forEach(c=>{ if(!c.color) c.color = C_PALETTE[(+c.n||0)%C_PALETTE.length]; });
+    await Store.set('committees/list', {items:list, updatedAt:nowISO()});
+    $('#msg').innerHTML='<div class="ok">הרשימה נשמרה ✓</div>';
+  };
+  $('#allcsv').onclick = async () => {
+    const rows = [['ועדה','מורה מלווה','שם התלמיד/ה','כיתה','עדיפות שהתקבלה']];
+    list.forEach(c=>picks.filter(p=>String(p.assigned)===String(c.n)).forEach(p=>{
+      const r = String(p.assigned)===String(p.p1)?'1':String(p.assigned)===String(p.p2)?'2':String(p.assigned)===String(p.p3)?'3':'ידני';
+      rows.push([c.name, c.teacher||'', p.child, p.cls||fname(p.folderId), r]); }));
+    picks.filter(p=>p.assigned==null).forEach(p=>rows.push(['— לא שובץ —','',p.child,p.cls||fname(p.folderId),'']));
+    await saveFile('שיבוץ_ועדות_בית_הספר.csv', csvBlob(rows));
+  };
+}
+
 })();
 </script>
 </body>
