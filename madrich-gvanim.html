@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>חוגי גוונים — מדריך קצר למורה</title>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#17181c; --muted:#6c6c78; --line:#dedee6; --accent:#1f5f4e; --soft:#e8f1ee; --bg:#f7f7f5; }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:"Assistant","Segoe UI",Arial,sans-serif; line-height:1.6}
+  .page{max-width:820px; margin:0 auto; padding:28px 20px 60px}
+  header{background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 24px; margin-bottom:22px}
+  h1{margin:0 0 4px; font-size:25px}
+  header p{margin:0; color:var(--muted); font-size:15px}
+  .step{background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px 24px; margin-bottom:18px; break-inside:avoid}
+  .step h2{display:flex; align-items:center; gap:10px; margin:0 0 8px; font-size:18.5px}
+  .n{flex:0 0 auto; width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700}
+  .step p{margin:0 0 12px; font-size:15.5px}
+  .step p.tip{background:var(--soft); border-radius:10px; padding:10px 13px; font-size:14px; margin:12px 0 0}
+  img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:10px; margin-top:6px}
+  img.half{max-width:460px}
+  footer{color:var(--muted); font-size:13.5px; text-align:center; margin-top:26px}
+  @media print{ body{background:#fff} .page{padding:0; max-width:none} .step,header{border-color:#ccc} }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <h1>חוגי גוונים — מדריך קצר למורה</h1>
+  <p>חמישה שלבים, מהקישור לתלמידים ועד הרשימה הסופית. סך הכול כעשר דקות עבודה.</p>
+</header>
+
+<div class="step">
+  <h2><span class="n">1</span> נכנסים ללשונית "חוגי גוונים"</h2>
+  <p>אחרי הכניסה למערכת, בראש התיקייה שלכם יש שורת לשוניות. בוחרים את השלישית.</p>
+  <img src="guide/01_tabs.png" alt="שורת הלשוניות בתיקיית המורה">
+  <p class="tip">רשימת התלמידים שהגדרתם בלשונית "אישורי הורים" משמשת גם כאן — אין צורך להקליד אותה שוב.</p>
+</div>
+
+<div class="step">
+  <h2><span class="n">2</span> שולחים את הקישור לתלמידים</h2>
+  <p>לוחצים על "העתקת הקישור" ומדביקים אותו בקבוצת הוואטסאפ של הכיתה. הקישור שייך לכיתה שלכם בלבד, וכל בחירה שתתקבל דרכו תיכנס רק לתיקייה שלכם.</p>
+  <img src="guide/02_link.png" alt="כרטיס הקישור לתלמידי הכיתה">
+  <p class="tip">בתום תקופת הבחירה לוחצים על "סגירת הטופס למילוי" כדי לעצור הגשות נוספות.</p>
+</div>
+
+<div class="step">
+  <h2><span class="n">3</span> מה התלמיד רואה</h2>
+  <p>התלמיד כותב את שמו ולוחץ על שלושה חוגים לפי סדר העדפה. הלחיצה הראשונה היא עדיפות 1, השנייה עדיפות 2 והשלישית עדיפות 3. לחיצה נוספת על חוג מבטלת אותו.</p>
+  <img src="guide/03_student.png" alt="טופס הבחירה של התלמיד">
+  <img src="guide/04_done.png" alt="מסך אישור לאחר שליחת הבחירה">
+  <p class="tip">תלמיד שרוצה לשנות את בחירתו ממלא שוב עם אותו שם — הבחירה החדשה מחליפה את הקודמת.</p>
+</div>
+
+<div class="step">
+  <h2><span class="n">4</span> עוקבים ומשבצים</h2>
+  <p>בטבלה רואים מי מילא ומה בחר. לוחצים על "שיבוץ אוטומטי לפי העדיפויות" — המערכת נותנת לכל תלמיד את העדיפות הגבוהה ביותר שאפשר, לפי מספר המקומות בכל חוג. אפשר לשנות כל שיבוץ ידנית בתפריט שבעמודת "שיבוץ".</p>
+  <img src="guide/06_table_after.png" alt="טבלת הבחירות והשיבוץ">
+  <p class="tip">התווית הירוקה מתחת לכל שיבוץ מראה איזו עדיפות התלמיד קיבל. למעלה, בכרטיס "מי מילא", מופיעים שמות התלמידים שטרם מילאו.</p>
+</div>
+
+<div class="step">
+  <h2><span class="n">5</span> מפיקים את הרשימה</h2>
+  <p>בסיום מתקבל סיכום של החוגים עם שמות המשובצים, ואפשר להוריד אותו כקובץ PDF להדפסה או כקובץ Excel.</p>
+  <img src="guide/07_summary.png" alt="סיכום לפי חוגים">
+  <img src="guide/08_export.png" alt="כפתורי הפקת הפלט">
+</div>
+
+<footer>מערכת בית הספר · לשאלות ותקלות פנו לרכז/ת הגוונים בבית הספר</footer>
+</div>
+</body>
+</html>
