@@ -451,8 +451,10 @@ async function adminPage(tab){
         return `<tr><td><b>${esc(u.name||u.username)}</b></td><td class="note">${esc(u.username)}</td>
           <td>${f?esc(f.name):'<span class="note">— לא משויכת —</span>'}</td>
           <td>${f?cnt(f):0}</td>
-          <td>${u.active===false?'<span class="tag no">מושבת</span>':'<span class="tag ok">פעיל</span>'}</td>
+          <td>${u.active===false?'<span class="tag no">מושבת</span>':'<span class="tag ok">פעיל</span>'}
+            ${u.gvanimAdmin?'<span class="tag rk1">אחראי גוונים</span>':''}</td>
           <td class="row" style="gap:6px">
+            <button class="btn ghost sm" data-gv="${esc(u.username)}">${u.gvanimAdmin?'ביטול אחראי גוונים':'מינוי לאחראי גוונים'}</button>
             <button class="btn ghost sm" data-pw="${esc(u.username)}">סיסמה</button>
             <button class="btn ghost sm" data-tg="${esc(u.username)}">${u.active===false?'הפעלה':'השבתה'}</button>
             <button class="btn dngr sm" data-del="${esc(u.username)}">מחיקה</button>
@@ -526,6 +528,10 @@ async function adminPage(tab){
     app.querySelectorAll('[data-pw]').forEach(b=>b.onclick=async()=>{
       const u=b.dataset.pw, p=prompt('סיסמה חדשה עבור '+u+':'); if(!p||p.length<4) return;
       const rec=await Store.get('users/'+u); rec.hash=await sha(u,p); await Store.set('users/'+u,rec); alert('הסיסמה עודכנה.');
+    });
+    app.querySelectorAll('[data-gv]').forEach(b=>b.onclick=async()=>{
+      const u=b.dataset.gv, rec=await Store.get('users/'+u); rec.gvanimAdmin = !rec.gvanimAdmin;
+      await Store.set('users/'+u,rec); adminPage('teachers');
     });
     app.querySelectorAll('[data-tg]').forEach(b=>b.onclick=async()=>{
       const u=b.dataset.tg, rec=await Store.get('users/'+u); rec.active = rec.active===false; await Store.set('users/'+u,rec); adminPage('teachers');
@@ -878,12 +884,14 @@ function folderTabs(on){
   return `<div class="tabs">
     <button data-ftab="slips" class="${on==='slips'?'on':''}">אישורי הורים</button>
     <button data-ftab="committees" class="${on==='committees'?'on':''}">ועדות תלמידים</button>
-    <button data-ftab="gvanim" class="${on==='gvanim'?'on':''}">חוגי גוונים</button></div>`;
+    <button data-ftab="gvanim" class="${on==='gvanim'?'on':''}">חוגי גוונים</button>
+    ${(ME&&ME.gvanimAdmin)?`<button data-ftab="gadmin" class="${on==='gadmin'?'on':''}">ניהול גוונים · כל בית הספר</button>`:''}</div>`;
 }
 function bindFolderTabs(folderId, asAdmin){
   app.querySelectorAll('[data-ftab]').forEach(b=>b.onclick=()=>
     b.dataset.ftab==='committees' ? committeesTeacher(folderId, asAdmin)
     : b.dataset.ftab==='gvanim' ? gvanimTeacher(folderId, asAdmin)
+    : b.dataset.ftab==='gadmin' ? adminGvanim(folderId)
     : teacherPage(folderId, asAdmin));
 }
 function committeeCard(c, rank, clickable){
@@ -1502,15 +1510,16 @@ async function gvanimPdf(folder, list, picks){
 }
 
 /* ---------------- admin: gvanim tab ---------------- */
-async function adminGvanim(){
-  app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+async function adminGvanim(fromFolder){
+  const isAdmin = ME && ME.role==='admin';
+  app.innerHTML = header(isAdmin?'ניהול מערכת':'ניהול חוגי גוונים') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
   const list = (await getClubs()).map(c=>Object.assign({}, c));
   const [folders, picks] = await Promise.all([Store.list('folders'), Store.list('gpicks')]);
   const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'';
-  const tabsBar = `<div class="tabs">
+  const tabsBar = isAdmin ? `<div class="tabs">
       <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
       <button data-tab="committees">ועדות</button><button data-tab="gvanim" class="on">גוונים</button>
-      <button data-tab="settings">הגדרות</button></div>`;
+      <button data-tab="settings">הגדרות</button></div>` : folderTabs('gadmin');
   const overview = list.map(c=>{
     const kids = picks.filter(p=>String(p.assigned)===String(c.n));
     const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
@@ -1555,8 +1564,9 @@ async function adminGvanim(){
       : '<div class="empty">אין עדיין תיקיות.</div>'}
     </div>`;
   bindOut();
-  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
-  app.querySelectorAll('[data-of]').forEach(b=>b.onclick=()=>gvanimTeacher(b.dataset.of, true));
+  if(isAdmin) app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
+  else bindFolderTabs(fromFolder || ME.folderId, false);
+  app.querySelectorAll('[data-of]').forEach(b=>b.onclick=()=>gvanimTeacher(b.dataset.of, isAdmin));
   const collect = () => app.querySelectorAll('[data-f]').forEach(inp=>{ const c=list[+inp.dataset.i]; const v=inp.value.trim();
     c[inp.dataset.f] = (inp.dataset.f==='n'||inp.dataset.f==='cap') ? (isNaN(+v)||v===''?(inp.dataset.f==='cap'?'':v):+v) : v; });
   const redraw = () => { $('#clist').innerHTML = list.map(editRow).join(''); bindRm(); };
