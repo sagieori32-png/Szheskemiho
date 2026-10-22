@@ -342,6 +342,8 @@ function sigData(){
   if(m){ return parentPage(m[1]); }
   const mc = location.hash.match(/[#&]c=([A-Za-z0-9_\-]+)/);
   if(mc){ return studentPage(mc[1]); }
+  const mg = location.hash.match(/[#&]g=([A-Za-z0-9_\-]+)/);
+  if(mg){ return gvanimStudent(mg[1]); }
   const cfg = await Store.get('app/config');
   if(!cfg || !cfg.bootstrapped) return setupPage();
   let saved=null; try{ saved = sessionStorage.getItem('slips_me'); }catch(e){}
@@ -431,6 +433,7 @@ function home(){ ME.role==='admin' ? adminPage() : teacherPage(ME.folderId); }
 async function adminPage(tab){
   tab = tab || 'teachers';
   if(tab==='committees') return adminCommittees();
+  if(tab==='gvanim') return adminGvanim();
   app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען נתונים…</div></div>`;
   bindOut();
   const [users, folders, events, subs] = await Promise.all([
@@ -473,6 +476,7 @@ async function adminPage(tab){
       <button data-tab="teachers" class="${tab==='teachers'?'on':''}">מורים</button>
       <button data-tab="folders" class="${tab==='folders'?'on':''}">תיקיות</button>
       <button data-tab="committees">ועדות</button>
+      <button data-tab="gvanim">גוונים</button>
       <button data-tab="settings" class="${tab==='settings'?'on':''}">הגדרות</button>
     </div>
     ${tab==='teachers'?`
@@ -873,11 +877,14 @@ function cChip(c, small){
 function folderTabs(on){
   return `<div class="tabs">
     <button data-ftab="slips" class="${on==='slips'?'on':''}">אישורי הורים</button>
-    <button data-ftab="committees" class="${on==='committees'?'on':''}">ועדות תלמידים</button></div>`;
+    <button data-ftab="committees" class="${on==='committees'?'on':''}">ועדות תלמידים</button>
+    <button data-ftab="gvanim" class="${on==='gvanim'?'on':''}">חוגי גוונים</button></div>`;
 }
 function bindFolderTabs(folderId, asAdmin){
   app.querySelectorAll('[data-ftab]').forEach(b=>b.onclick=()=>
-    b.dataset.ftab==='committees' ? committeesTeacher(folderId, asAdmin) : teacherPage(folderId, asAdmin));
+    b.dataset.ftab==='committees' ? committeesTeacher(folderId, asAdmin)
+    : b.dataset.ftab==='gvanim' ? gvanimTeacher(folderId, asAdmin)
+    : teacherPage(folderId, asAdmin));
 }
 function committeeCard(c, rank, clickable){
   return `<div class="ccard${rank?' picked':''}${clickable?' click':''}" style="--c:${cColor(c)}" data-cn="${esc(c.n)}" ${clickable?'role="button" tabindex="0"':''}>
@@ -1156,7 +1163,8 @@ async function adminCommittees(){
   const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'';
   const tabsBar = `<div class="tabs">
       <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
-      <button data-tab="committees" class="on">ועדות</button><button data-tab="settings">הגדרות</button></div>`;
+      <button data-tab="committees" class="on">ועדות</button>
+      <button data-tab="gvanim">גוונים</button><button data-tab="settings">הגדרות</button></div>`;
   const overview = list.map(c=>{
     const kids = picks.filter(p=>String(p.assigned)===String(c.n));
     const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
@@ -1189,7 +1197,7 @@ async function adminCommittees(){
       <div id="msg"></div>
     </div>`;
   bindOut();
-  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():adminPage(b.dataset.tab));
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
   const collect = () => app.querySelectorAll('[data-f]').forEach(inp=>{ const c=list[+inp.dataset.i]; const v=inp.value.trim(); c[inp.dataset.f] = inp.dataset.f==='n' ? (isNaN(+v)||v===''?v:+v) : v; });
   const redraw = () => { $('#clist').innerHTML = list.map(editRow).join(''); bindRm(); };
   const bindRm = () => app.querySelectorAll('[data-rmc]').forEach(b=>b.onclick=()=>{ collect(); const c=list[+b.dataset.rmc];
@@ -1212,6 +1220,372 @@ async function adminCommittees(){
       rows.push([c.name, c.teacher||'', p.child, p.cls||fname(p.folderId), r]); }));
     picks.filter(p=>p.assigned==null).forEach(p=>rows.push(['— לא שובץ —','',p.child,p.cls||fname(p.folderId),'']));
     await saveFile('שיבוץ_ועדות_בית_הספר.csv', csvBlob(rows));
+  };
+}
+
+/* ================= חוגי גוונים ================= */
+const G_DEFAULT = [
+  {n:1, name:'שח מט', icon:'♟️', cap:20, color:'#4a6fa5',
+   desc:'לומדים פתיחות, טקטיקה וחשיבה כמה צעדים קדימה — ומשחקים טורנירים ידידותיים.'},
+  {n:2, name:'צילום', icon:'📷', cap:18, color:'#2e7d5b',
+   desc:'הרכב תמונה, אור וזווית צילום, יציאות לצלם בשטח ותערוכה בסוף השנה.'},
+  {n:3, name:'קפוארה', icon:'🤸', cap:24, color:'#b3622a',
+   desc:'אמנות לחימה ברזילאית שמשלבת תנועה, מוזיקה וקצב בתוך מעגל הרודה.'},
+  {n:4, name:'מבוכים ודרקונים', icon:'🐉', cap:16, color:'#6b4a9e',
+   desc:'משחק תפקידים שיתופי: בונים דמות, מספרים סיפור ומקבלים החלטות כצוות.'},
+  {n:5, name:'קרקסנות', icon:'🎪', cap:20, color:'#a8362f',
+   desc:'ג׳אגלינג, שיווי משקל ולהטוטים — ובסוף התהליך מופע קצר מול קהל.'}
+];
+async function getClubs(){
+  try{ const d = await Store.get('gclubs/list'); if(d && Array.isArray(d.items) && d.items.length) return d.items; }catch(e){}
+  return G_DEFAULT;
+}
+function clubCard(c, rank, clickable){
+  return `<div class="ccard${rank?' picked':''}${clickable?' click':''}" style="--c:${cColor(c)}" data-cn="${esc(c.n)}" ${clickable?'role="button" tabindex="0"':''}>
+    <div class="chead"><span class="cnum">${esc(c.icon||'')}</span><span class="cname">${esc(c.name)}</span></div>
+    <div class="cdesc">${esc(c.desc||'')}</div>
+    ${c.cap?`<div class="cteach">מקומות בחוג: <b>${esc(c.cap)}</b></div>`:''}
+    ${rank?`<span class="crank">עדיפות ${rank}</span>`:''}</div>`;
+}
+
+/* ---------------- student form (#g=folderId) ---------------- */
+async function gvanimStudent(folderId, onBack){
+  app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
+  const folder = await Store.get('folders/'+folderId);
+  if(!folder){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
+  const cfg = await Store.get('app/config') || {};
+  const list = await getClubs();
+  const back = onBack ? '<button class="btn ghost sm" id="back">חזרה</button>' : '';
+  const gform = folder.gform || {};
+  if(gform.closed){
+    app.innerHTML = `<div class="topbar"><div class="brand">חוגי גוונים ${C_YEAR}</div>${back}</div>
+      <div class="card"><h2>הטופס נסגר למילוי</h2><p class="sub">אם עוד לא בחרתם חוגים — פנו למורה שלכם.</p></div>`;
+    if(onBack) $('#back').onclick = onBack; return;
+  }
+  const roster = folder.roster || [];
+  let picks = [];
+  app.innerHTML = `
+    <div class="topbar">${back}</div>
+    <div class="hero">
+      <div class="hero-school">${esc(cfg.org||'בית הספר הממלכתי הנרייטה סאלד ירושלים')}</div>
+      <h1 class="hero-title">חוגי גוונים <span>${C_YEAR}</span></h1>
+      <div class="hero-sub">בוחרים · מתנסים · נהנים!</div>
+    </div>
+    ${modeBanner()}
+    <div class="card">
+      <h2><span class="step">1</span> הפרטים שלי</h2>
+      <div class="grid">
+        <div><label>שם התלמיד/ה</label><input id="child" list="grl" placeholder="שם פרטי ושם משפחה" autocomplete="off">
+          <datalist id="grl">${roster.map(r=>`<option value="${esc(r)}">`).join('')}</datalist></div>
+        <div><label>כיתה</label><input id="cls" value="${esc(folder.name||'')}"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="step">2</span> בחרו 3 חוגים לפי הסדר</h2>
+      <p class="sub">לוחצים על החוג שהכי רוצים — הוא יהיה עדיפות 1. אחר כך על השני ועל השלישי. לחיצה נוספת מבטלת.</p>
+      <div class="tray" id="tray"></div>
+      <div class="cgrid" id="cgrid"></div>
+    </div>
+    <div class="card sticky-submit">
+      <div class="row"><button class="btn" id="submit" style="flex:1">שליחת הבחירה למורה</button></div>
+      <div id="msg"></div>
+    </div>`;
+  if(onBack) $('#back').onclick = onBack;
+
+  const draw = () => {
+    $('#tray').innerHTML = [1,2,3].map(i=>{
+      const c = cFind(list, picks[i-1]);
+      return `<div class="slot${c?' filled':''}" style="${c?'--c:'+cColor(c):''}">
+        <span class="slotn">עדיפות ${i}</span>
+        ${c?`<span class="slotv">${esc(c.icon||'')} ${esc(c.name)}</span><button class="slotx" data-rm="${esc(c.n)}" aria-label="הסרה">✕</button>`
+           :'<span class="slotv empty-v">טרם נבחר</span>'}</div>`;
+    }).join('');
+    $('#cgrid').innerHTML = list.map(c=>{ const i = picks.findIndex(p=>String(p)===String(c.n)); return clubCard(c, i>-1?i+1:0, true); }).join('');
+    app.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{ picks = picks.filter(p=>String(p)!==b.dataset.rm); draw(); });
+    app.querySelectorAll('.ccard.click').forEach(el=>{
+      const act = () => {
+        const n = el.dataset.cn, i = picks.findIndex(p=>String(p)===n);
+        if(i>-1) picks.splice(i,1);
+        else if(picks.length<3) picks.push(isNaN(+n)?n:+n);
+        else { $('#msg').innerHTML='<div class="err">כבר בחרתם 3 חוגים. כדי להחליף — לחצו על אחד שבחרתם כדי לבטל אותו.</div>'; return; }
+        $('#msg').innerHTML=''; draw();
+      };
+      el.onclick = act; el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } };
+    });
+  };
+  draw();
+
+  $('#submit').onclick = async () => {
+    const child = norm($('#child').value), cls = norm($('#cls').value), msg = $('#msg');
+    if(!child) return msg.innerHTML='<div class="err">נא לכתוב את השם המלא.</div>';
+    if(picks.length<3) return msg.innerHTML=`<div class="err">נא לבחור 3 חוגים (נבחרו ${picks.length}).</div>`;
+    msg.innerHTML='<div class="note">שולח…</div>'; $('#submit').disabled = true;
+    try{
+      const existing = (await Store.list('gpicks','folderId',folderId)).find(p=>norm(p.child)===child);
+      const id = existing ? existing._id : rid('g_');
+      await Store.set('gpicks/'+id, {folderId, child, cls, p1:picks[0], p2:picks[1], p3:picks[2],
+        submittedAt:nowISO(), assigned: existing ? (existing.assigned==null?null:existing.assigned) : null});
+    }catch(e){ $('#submit').disabled=false; return msg.innerHTML='<div class="err">השליחה נכשלה. נסו שוב או פנו למורה.</div>'; }
+    app.querySelector('.sticky-submit').remove();
+    window.scrollTo({top:0, behavior:'smooth'});
+    const done = document.createElement('div'); done.className='card done';
+    done.innerHTML = `<div class="done-ic">🎉</div><h2>הבחירה נשלחה למורה!</h2>
+      <p class="sub">תודה ${esc(child)}. אלה החוגים שבחרת:</p>
+      <div class="donelist">${picks.map((p,i)=>`<div><span class="note">עדיפות ${i+1}</span> ${cChip(cFind(list,p))}</div>`).join('')}</div>
+      <p class="note" style="margin-top:12px">רוצים לשנות? אפשר למלא שוב עם אותו שם — הבחירה החדשה תחליף את הקודמת.</p>`;
+    app.querySelector('.hero').after(done);
+  };
+}
+
+/* ---------------- teacher: gvanim tab ---------------- */
+async function gvanimTeacher(folderId, asAdmin){
+  if(!folderId){ app.innerHTML = header('חוגי גוונים') + `<div class="card"><div class="empty">לא שויכה לך תיקייה. פנו למנהל המערכת.</div></div>`; return bindOut(); }
+  app.innerHTML = header('טוען…') + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const folder = await Store.get('folders/'+folderId) || {};
+  const list = await getClubs();
+  let picks = (await Store.list('gpicks','folderId',folderId)).sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'));
+  const roster = folder.roster || [];
+  const gform = folder.gform || {};
+  const link = location.origin + location.pathname + location.search + '#g=' + folderId;
+  const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
+  const saveFolder = async patch => { const f = Object.assign({}, await Store.get('folders/'+folderId) || {}); f.gform = Object.assign({}, f.gform||{}, patch); await Store.set('folders/'+folderId, f); Object.assign(gform, patch); };
+  const savePick = async p => { const c = Object.assign({}, p); delete c._id; await Store.set('gpicks/'+p._id, c); };
+
+  const missing = () => roster.filter(r=>!picks.some(p=>norm(p.child)===norm(r)));
+  const gotRank = p => p.assigned==null ? 0 : (String(p.assigned)===String(p.p1)?1:String(p.assigned)===String(p.p2)?2:String(p.assigned)===String(p.p3)?3:4);
+  const rankTag = p => { const r = gotRank(p); return r===0?'<span class="tag no">לא שובץ</span>':r===4?'<span class="tag rk4">שיבוץ ידני</span>':`<span class="tag rk${r}">עדיפות ${r}</span>`; };
+  const options = sel => `<option value="">— בחירת חוג —</option>` + list.map(c=>`<option value="${esc(c.n)}" ${String(sel)===String(c.n)?'selected':''}>${esc(c.icon||'')} ${esc(c.name)}</option>`).join('');
+
+  const summaryHtml = () => {
+    const un = picks.filter(p=>p.assigned==null);
+    const by = list.map(c=>({c, kids:picks.filter(p=>String(p.assigned)===String(c.n))}));
+    return `<div class="sumgrid">${by.map(({c,kids})=>`
+      <div class="sumbox${kids.length?'':' zero'}" style="--c:${cColor(c)}">
+        <div class="sumh"><span>${esc(c.icon||'')} ${esc(c.name)}</span><b>${kids.length}</b></div>
+        <div class="sumn">${kids.map(k=>esc(k.child)).join(' · ')||'<span class="note">אין עדיין</span>'}</div></div>`).join('')}
+    </div>${un.length?`<div class="warnbox" style="margin-top:12px">עדיין ללא שיבוץ (${un.length}): ${un.map(p=>esc(p.child)).join(' · ')}</div>`:(picks.length?'<div class="ok">כל התלמידים שבחרו שובצו ✓</div>':'')}`;
+  };
+  const rowHtml = p => `<tr data-pid="${esc(p._id)}">
+      <td><b>${esc(p.child)}</b><div class="note">${esc(fmtTime(p.submittedAt))}</div></td>
+      <td>${cChip(cFind(list,p.p1),1)}</td><td>${cChip(cFind(list,p.p2),1)}</td><td>${cChip(cFind(list,p.p3),1)}</td>
+      <td><select class="asel" data-as="${esc(p._id)}">${options(p.assigned)}</select><div class="rk" style="margin-top:4px">${rankTag(p)}</div></td>
+      <td><button class="btn dngr sm" data-delp="${esc(p._id)}" title="מחיקת הבחירה">✕</button></td></tr>`;
+
+  app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('gvanim') + `
+    <div class="card">
+      <h2>קישור לתלמידי הכיתה</h2>
+      <p class="sub">שולחים את הקישור לתלמידים ולהורים. כל תלמיד/ה בוחר/ת 3 חוגים לפי סדר העדפה, והבחירה נכנסת רק לתיקייה הזו.</p>
+      <div class="linkbox">
+        <code>${esc(link)}</code>
+        <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
+          <button class="btn ghost sm" id="prev">תצוגה מקדימה</button>
+          <button class="btn ghost sm" id="tog">${gform.closed?'פתיחת הטופס למילוי':'סגירת הטופס למילוי'}</button>
+          <span class="tag ${gform.closed?'no':'ok'}">${gform.closed?'סגור':'פתוח למילוי'}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>מי מילא · ${picks.length}${roster.length?' מתוך '+roster.length:''}</h2>
+      ${roster.length? (missing().length? `<p class="sub" style="margin-bottom:6px">טרם מילאו:</p><div class="miss">${missing().map(m=>`<span>${esc(m)}</span>`).join('')}</div>` : '<div class="ok" style="margin-top:0">כל תלמידי הכיתה מילאו ✓</div>')
+        : '<p class="note">כדי לראות מי עוד לא מילא — הגדירו רשימת תלמידים בלשונית "אישורי הורים".</p>'}
+    </div>
+    <div class="card">
+      <h2>שיבוץ לחוגים</h2>
+      <div class="row" style="align-items:flex-end; margin-bottom:12px">
+        <div style="width:230px"><label>מקסימום תלמידים מהכיתה בכל חוג</label><input id="cap" type="number" min="1" placeholder="ללא הגבלה" value="${esc(gform.cap||'')}"></div>
+        <button class="btn" id="auto" ${picks.length?'':'disabled'}>שיבוץ אוטומטי לפי העדיפויות</button>
+        <button class="btn ghost" id="clear" ${picks.length?'':'disabled'}>ניקוי כל השיבוצים</button>
+      </div>
+      <p class="note" style="margin:0 0 12px">השיבוץ האוטומטי ממלא קודם את עדיפות 1 של כולם; אם חוג מלא — עובר לעדיפות 2 ואחר כך 3. שיבוצים שכבר נקבעו נשמרים.</p>
+      ${picks.length?`<div class="scroll"><table class="ptable"><tr><th>תלמיד/ה</th><th>עדיפות 1</th><th>עדיפות 2</th><th>עדיפות 3</th><th>שיבוץ</th><th></th></tr>
+        ${picks.map(rowHtml).join('')}</table></div>`:'<div class="empty">עדיין לא התקבלו בחירות. שלחו את הקישור לתלמידים.</div>'}
+      <div id="amsg"></div>
+      <h3>הוספה ידנית (לתלמיד/ה שלא מילא/ה)</h3>
+      <div class="row"><input id="mname" placeholder="שם התלמיד/ה" style="flex:1; min-width:160px" list="gmrl">
+        <datalist id="gmrl">${missing().map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+        <select id="mcom" style="flex:1; min-width:160px">${options('')}</select>
+        <button class="btn ghost" id="madd">הוספה</button></div>
+    </div>
+    <div class="card"><h2>סיכום לפי חוגים</h2><div id="sum">${summaryHtml()}</div></div>
+    <div class="card">
+      <h2>הפקת פלט</h2>
+      <p class="sub">דף מסודר של שיבוץ הכיתה לחוגים — להדפסה, לשליחה למדריכים או לתיוק.</p>
+      <div class="row"><button class="btn" id="pdf" ${picks.length?'':'disabled'}>הורדת PDF</button>
+        <button class="btn ghost" id="csv" ${picks.length?'':'disabled'}>הורדת קובץ Excel (CSV)</button></div>
+      <div id="emsg"></div>
+    </div>`;
+  bindOut(); bindFolderTabs(folderId, asAdmin);
+  if(asAdmin) $('#back').onclick = () => adminPage('folders');
+  const refreshSum = () => { $('#sum').innerHTML = summaryHtml(); };
+  const reload = () => gvanimTeacher(folderId, asAdmin);
+
+  $('#copy').onclick = async () => { try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }catch(e){ $('#copy').textContent='סמנו והעתיקו ידנית'; } };
+  $('#prev').onclick = () => gvanimStudent(folderId, reload);
+  $('#tog').onclick = async () => { await saveFolder({closed:!gform.closed}); reload(); };
+  app.querySelectorAll('[data-as]').forEach(s=>s.onchange=async()=>{
+    const p = picks.find(x=>x._id===s.dataset.as); p.assigned = s.value===''?null:(isNaN(+s.value)?s.value:+s.value);
+    await savePick(p); s.parentElement.querySelector('.rk').innerHTML = rankTag(p); refreshSum();
+  });
+  app.querySelectorAll('[data-delp]').forEach(b=>b.onclick=async()=>{
+    const p = picks.find(x=>x._id===b.dataset.delp); if(!confirm('למחוק את הבחירה של '+p.child+'?')) return;
+    await Store.del('gpicks/'+p._id); reload();
+  });
+  $('#auto').onclick = async () => {
+    const capRaw = parseInt($('#cap').value,10); const capG = capRaw>0 ? capRaw : Infinity;
+    await saveFolder({cap: capRaw>0?capRaw:''});
+    const cnt = {}; picks.forEach(p=>{ if(p.assigned!=null) cnt[p.assigned]=(cnt[p.assigned]||0)+1; });
+    const limit = c => { const club = cFind(list, c); const own = club && club.cap>0 ? club.cap : Infinity; return Math.min(own, capG); };
+    const queue = picks.filter(p=>p.assigned==null).sort((a,b)=>(a.submittedAt||'').localeCompare(b.submittedAt||''));
+    const changed = [];
+    for(const key of ['p1','p2','p3']){
+      for(const p of queue){
+        if(p.assigned!=null || p[key]==null) continue;
+        if((cnt[p[key]]||0) < limit(p[key])){ p.assigned = p[key]; cnt[p[key]]=(cnt[p[key]]||0)+1; changed.push(p); }
+      }
+    }
+    for(const p of changed) await savePick(p);
+    reload();
+  };
+  $('#clear').onclick = async () => {
+    if(!confirm('לנקות את כל השיבוצים בכיתה? הבחירות של התלמידים יישמרו.')) return;
+    for(const p of picks){ if(p.assigned!=null){ p.assigned=null; await savePick(p);} } reload();
+  };
+  $('#madd').onclick = async () => {
+    const n = norm($('#mname').value), v = $('#mcom').value;
+    if(!n) return $('#amsg').innerHTML='<div class="err">נא להזין שם.</div>';
+    if(picks.some(p=>norm(p.child)===n)) return $('#amsg').innerHTML='<div class="err">התלמיד/ה כבר ברשימה — אפשר לשנות את השיבוץ בטבלה.</div>';
+    const a = v===''?null:(isNaN(+v)?v:+v);
+    await Store.set('gpicks/'+rid('g_'), {folderId, child:n, cls:folder.name||'', p1:null, p2:null, p3:null, assigned:a, manual:true, submittedAt:nowISO()});
+    reload();
+  };
+  $('#csv').onclick = async () => {
+    const rows = [['שם התלמיד/ה','כיתה','עדיפות 1','עדיפות 2','עדיפות 3','שובץ/ה לחוג','עדיפות שהתקבלה']];
+    picks.forEach(p=>{ const a=cFind(list,p.assigned), r=gotRank(p);
+      rows.push([p.child, p.cls||folder.name||'', (cFind(list,p.p1)||{}).name||'', (cFind(list,p.p2)||{}).name||'', (cFind(list,p.p3)||{}).name||'', a?a.name:'', r===0?'לא שובץ':r===4?'ידני':String(r)]); });
+    await saveFile(`גוונים_${(folder.name||'כיתה').replace(/\s+/g,'_')}.csv`, csvBlob(rows));
+    $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>';
+  };
+  $('#pdf').onclick = async () => {
+    $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
+    try{ await saveFile(`שיבוץ_גוונים_${(folder.name||'כיתה').replace(/\s+/g,'_')}.pdf`, await gvanimPdf(folder, list, picks)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
+  };
+}
+
+async function gvanimPdf(folder, list, picks){
+  const cfg = await Store.get('app/config') || {};
+  const el = document.getElementById('cprint');
+  const groups = list.map(c=>({c, kids:picks.filter(p=>String(p.assigned)===String(c.n))})).filter(g=>g.kids.length);
+  const un = picks.filter(p=>p.assigned==null);
+  const rk = p => p.assigned==null?'—':String(p.assigned)===String(p.p1)?'1':String(p.assigned)===String(p.p2)?'2':String(p.assigned)===String(p.p3)?'3':'ידני';
+  el.innerHTML = `
+    <div class="ph"><div><div class="po">${esc(cfg.org||'')}</div><h1>שיבוץ לחוגי גוונים ${C_YEAR}</h1>
+      <div class="pm">${folder.name?'כיתה: <b>'+esc(folder.name)+'</b> · ':''}${picks.length} תלמידים · הופק ${esc(new Date().toLocaleDateString('he-IL'))}</div></div></div>
+    <div class="pg">${groups.map(g=>`<div class="pb" style="border-color:${cColor(g.c)}">
+      <div class="pbh" style="background:${cColor(g.c)}">${esc(g.c.icon||'')} ${esc(g.c.name)} <span>(${g.kids.length})</span></div>
+      <ol>${g.kids.map(k=>`<li>${esc(k.child)}${k.cls&&!folder.name?' <span>('+esc(k.cls)+')</span>':''}</li>`).join('')}</ol></div>`).join('')}</div>
+    ${un.length?`<div class="pun">ללא שיבוץ: ${un.map(p=>esc(p.child)).join(' · ')}</div>`:''}
+    <h2>פירוט הבחירות</h2>
+    <table><tr><th>#</th><th>תלמיד/ה</th><th>כיתה</th><th>עדיפות 1</th><th>עדיפות 2</th><th>עדיפות 3</th><th>שובץ/ה ל</th><th>עדיפות</th></tr>
+      ${picks.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.child)}</td><td>${esc(p.cls||folder.name||'')}</td><td>${esc((cFind(list,p.p1)||{}).name||'—')}</td><td>${esc((cFind(list,p.p2)||{}).name||'—')}</td><td>${esc((cFind(list,p.p3)||{}).name||'—')}</td><td><b>${esc((cFind(list,p.assigned)||{}).name||'—')}</b></td><td>${rk(p)}</td></tr>`).join('')}</table>`;
+  await new Promise(r=>setTimeout(r,80));
+  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff'});
+  const {jsPDF} = window.jspdf; const pdf = new jsPDF('p','mm','a4');
+  const pxPerPage = Math.floor(canvas.width * 297/210);
+  for(let y=0, first=true; y<canvas.height; y+=pxPerPage, first=false){
+    const h = Math.min(pxPerPage, canvas.height-y);
+    const part = document.createElement('canvas'); part.width = canvas.width; part.height = h;
+    const ctx = part.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,part.width,h); ctx.drawImage(canvas, 0, -y);
+    if(!first) pdf.addPage();
+    pdf.addImage(part.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,h*210/canvas.width);
+  }
+  return pdf.output('blob');
+}
+
+/* ---------------- admin: gvanim tab ---------------- */
+async function adminGvanim(){
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const list = (await getClubs()).map(c=>Object.assign({}, c));
+  const [folders, picks] = await Promise.all([Store.list('folders'), Store.list('gpicks')]);
+  const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'';
+  const tabsBar = `<div class="tabs">
+      <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
+      <button data-tab="committees">ועדות</button><button data-tab="gvanim" class="on">גוונים</button>
+      <button data-tab="settings">הגדרות</button></div>`;
+  const overview = list.map(c=>{
+    const kids = picks.filter(p=>String(p.assigned)===String(c.n));
+    const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
+    const over = c.cap>0 && kids.length>c.cap;
+    return `<div class="sumbox${kids.length?'':' zero'}" style="--c:${cColor(c)}">
+      <div class="sumh"><span>${esc(c.icon||'')} ${esc(c.name)}</span><b>${kids.length}${c.cap?' / '+esc(c.cap):''}</b></div>
+      <div class="note">${demand} בחרו כעדיפות 1${over?' · חריגה מהמכסה':''}</div>
+      <div class="sumn">${kids.map(k=>esc(k.child)+' <span class="note">('+esc(k.cls||fname(k.folderId))+')</span>').join(' · ')||'<span class="note">אין עדיין משובצים</span>'}</div></div>`;
+  }).join('');
+  const editRow = (c,i) => `<div class="cedit" style="--c:${cColor(c)}">
+      <div class="grid3">
+        <div><label>מס'</label><input data-f="n" data-i="${i}" value="${esc(c.n)}"></div>
+        <div><label>שם החוג</label><input data-f="name" data-i="${i}" value="${esc(c.name)}"></div>
+        <div><label>מספר מקומות</label><input data-f="cap" data-i="${i}" value="${esc(c.cap||'')}"></div>
+        <div><label>אייקון (אימוג׳י)</label><input data-f="icon" data-i="${i}" value="${esc(c.icon||'')}"></div>
+        <div class="full" style="grid-column:2/-1"><label>תיאור</label><textarea data-f="desc" data-i="${i}" style="min-height:58px">${esc(c.desc||'')}</textarea></div>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn dngr sm" data-rmc="${i}">הסרת החוג</button></div></div>`;
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + tabsBar + `
+    <div class="card">
+      <h2>תמונת מצב בית־ספרית · ${picks.length} תלמידים בחרו</h2>
+      <p class="sub">כמה תלמידים שובצו לכל חוג מכל הכיתות — נוח להעביר למדריכים.</p>
+      <div class="sumgrid">${overview}</div>
+      <div class="row mt">
+        <button class="btn" id="allpdf" ${picks.length?'':'disabled'}>הורדת שיבוץ כל בית הספר (PDF)</button>
+        <button class="btn ghost" id="allcsv" ${picks.length?'':'disabled'}>הורדת שיבוץ כל בית הספר (CSV)</button>
+      </div><div id="emsg"></div>
+    </div>
+    <div class="card">
+      <h2>רשימת החוגים</h2>
+      <p class="sub">זו הרשימה שהתלמידים רואים בטופס. שינויים נשמרים לכל הכיתות.</p>
+      <div id="clist">${list.map(editRow).join('')}</div>
+      <div class="row mt"><button class="btn ghost" id="addc">הוספת חוג</button><button class="btn" id="savec">שמירת הרשימה</button></div>
+      <div id="msg"></div>
+    </div>
+    <div class="card">
+      <h2>שיבוץ לפי כיתות</h2>
+      ${folders.length? folders.map(f=>{ const n = picks.filter(p=>p.folderId===f._id).length;
+        return `<div class="listrow"><div class="main"><b>${esc(f.name)}</b>
+          <div class="note">${n} בחירות · ${picks.filter(p=>p.folderId===f._id&&p.assigned!=null).length} שובצו</div></div>
+          <button class="btn ghost sm" data-of="${esc(f._id)}">פתיחת התיקייה</button></div>`; }).join('')
+      : '<div class="empty">אין עדיין תיקיות.</div>'}
+    </div>`;
+  bindOut();
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
+  app.querySelectorAll('[data-of]').forEach(b=>b.onclick=()=>gvanimTeacher(b.dataset.of, true));
+  const collect = () => app.querySelectorAll('[data-f]').forEach(inp=>{ const c=list[+inp.dataset.i]; const v=inp.value.trim();
+    c[inp.dataset.f] = (inp.dataset.f==='n'||inp.dataset.f==='cap') ? (isNaN(+v)||v===''?(inp.dataset.f==='cap'?'':v):+v) : v; });
+  const redraw = () => { $('#clist').innerHTML = list.map(editRow).join(''); bindRm(); };
+  const bindRm = () => app.querySelectorAll('[data-rmc]').forEach(b=>b.onclick=()=>{ collect(); const c=list[+b.dataset.rmc];
+    if(picks.some(p=>[p.p1,p.p2,p.p3,p.assigned].map(String).includes(String(c.n))) && !confirm('יש תלמידים שבחרו בחוג הזה. להסיר בכל זאת?')) return;
+    list.splice(+b.dataset.rmc,1); redraw(); });
+  bindRm();
+  $('#addc').onclick = () => { collect(); const n = Math.max(0,...list.map(c=>+c.n||0))+1; list.push({n, name:'', icon:'⭐', desc:'', cap:'', color:C_PALETTE[n%C_PALETTE.length]}); redraw(); };
+  $('#savec').onclick = async () => {
+    collect();
+    if(list.some(c=>!c.name || c.n==='')) return $('#msg').innerHTML='<div class="err">לכל חוג צריך מספר ושם.</div>';
+    const ns = list.map(c=>String(c.n)); if(new Set(ns).size!==ns.length) return $('#msg').innerHTML='<div class="err">יש שני חוגים עם אותו מספר.</div>';
+    list.forEach(c=>{ if(!c.color) c.color = C_PALETTE[(+c.n||0)%C_PALETTE.length]; });
+    await Store.set('gclubs/list', {items:list, updatedAt:nowISO()});
+    $('#msg').innerHTML='<div class="ok">הרשימה נשמרה ✓</div>';
+  };
+  $('#allcsv').onclick = async () => {
+    const rows = [['חוג','שם התלמיד/ה','כיתה','עדיפות שהתקבלה']];
+    list.forEach(c=>picks.filter(p=>String(p.assigned)===String(c.n)).forEach(p=>{
+      const r = String(p.assigned)===String(p.p1)?'1':String(p.assigned)===String(p.p2)?'2':String(p.assigned)===String(p.p3)?'3':'ידני';
+      rows.push([c.name, p.child, p.cls||fname(p.folderId), r]); }));
+    picks.filter(p=>p.assigned==null).forEach(p=>rows.push(['— לא שובץ —',p.child,p.cls||fname(p.folderId),'']));
+    await saveFile('שיבוץ_גוונים_בית_הספר.csv', csvBlob(rows));
+  };
+  $('#allpdf').onclick = async () => {
+    $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
+    try{ await saveFile('שיבוץ_גוונים_בית_הספר.pdf', await gvanimPdf({name:''}, list, picks.slice().sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'))));
+      $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
   };
 }
 
