@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בחירת חוגי גוונים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f4f4f1; --card:#ffffff; --ink:#17181c; --muted:#6c6c78; --line:#dedee6;
+  --accent:#4a3f8f; --accent-ink:#ffffff; --soft:#ece9f7; --danger:#a8362f; --warn:#8a6a1f; --warnbg:#fdf4dd;
+  --pick1:#2e7d5b; --pick2:#4a3f8f; --pick3:#8a6a1f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --card:#1e2024; --ink:#eceef2; --muted:#9a9ca6; --line:#32353c;
+    --accent:#8d81d6; --accent-ink:#14111f; --soft:#23213a; --danger:#e0776e; --warn:#e0c377; --warnbg:#2c2618;
+    --pick1:#5fc79a; --pick2:#9b90e6; --pick3:#e0c377;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --card:#1e2024; --ink:#eceef2; --muted:#9a9ca6; --line:#32353c;
+  --accent:#8d81d6; --accent-ink:#14111f; --soft:#23213a; --danger:#e0776e; --warn:#e0c377; --warnbg:#2c2618;
+  --pick1:#5fc79a; --pick2:#9b90e6; --pick3:#e0c377;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--ink); font-family:"Assistant","Segoe UI",Arial,sans-serif; font-size:15.5px; line-height:1.55}
+.wrap{max-width:980px; margin:0 auto; padding:18px 16px 60px}
+.topbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px}
+.brand{font-weight:700; font-size:18px; margin-inline-end:auto}
+.brand small{display:block; font-weight:400; font-size:12.5px; color:var(--muted)}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px}
+h1{font-size:21px; margin:0 0 4px}
+h2{font-size:16.5px; margin:0 0 12px}
+h3{font-size:14.5px; margin:18px 0 8px; color:var(--muted); font-weight:600}
+p.sub{color:var(--muted); font-size:13.5px; margin:0 0 16px}
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.full{grid-column:1/-1}
+label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px}
+input,select,textarea{width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; font:inherit; font-size:15px; background:var(--card); color:var(--ink)}
+textarea{min-height:70px; resize:vertical; line-height:1.6}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--soft); border-color:var(--accent)}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:10px 16px; border-radius:9px; border:0;
+     background:var(--accent); color:var(--accent-ink); font:inherit; font-weight:600; cursor:pointer}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line); font-weight:500}
+.btn.sm{padding:6px 11px; font-size:13.5px; font-weight:500}
+.btn.dngr{background:transparent; color:var(--danger); border:1px solid var(--line)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.row{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+.row.mt{margin-top:16px}
+table{width:100%; border-collapse:collapse; font-size:14.5px}
+th,td{text-align:right; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle}
+th{font-size:12.5px; color:var(--muted); font-weight:600}
+.tag{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12.5px; font-weight:600}
+.tag.ok{background:var(--soft); color:var(--accent)}
+.tag.no{background:transparent; border:1px solid var(--line); color:var(--muted)}
+.tag.p1{background:var(--soft); color:var(--pick1)}
+.linkbox{background:var(--soft); border:1px solid var(--line); border-radius:11px; padding:13px}
+.linkbox code{display:block; word-break:break-all; font-size:11.5px; background:var(--card); padding:8px; border-radius:7px; margin:8px 0; max-height:80px; overflow:auto}
+.note{font-size:12.5px; color:var(--muted); line-height:1.6}
+.warnbox{background:var(--warnbg); border:1px solid var(--line); color:var(--warn); border-radius:10px; padding:11px 13px; font-size:13.5px; margin-bottom:14px}
+.err{color:var(--danger); font-size:13.5px; margin-top:9px}
+.ok{background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:14px; margin-top:14px}
+.empty{color:var(--muted); font-size:14px; padding:18px 0; text-align:center}
+.listrow{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.listrow .main{margin-inline-end:auto}
+.tabs{display:flex; gap:6px; background:var(--bg); border:1px solid var(--line); padding:5px; border-radius:11px; margin-bottom:16px; flex-wrap:wrap}
+.tabs button{flex:1; min-width:110px; padding:8px; border:0; background:transparent; border-radius:8px; font:inherit; font-size:14px; color:var(--muted); cursor:pointer}
+.tabs button.on{background:var(--card); color:var(--ink); font-weight:600}
+.scroll{overflow-x:auto}
+/* club cards */
+.clubs{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px}
+.club{position:relative; border:1.5px solid var(--line); border-radius:14px; padding:16px; background:var(--card); cursor:pointer; text-align:center; transition:border-color .12s, transform .08s}
+.club:hover{border-color:var(--accent)}
+.club:active{transform:scale(.99)}
+.club.on{border-color:var(--accent); background:var(--soft)}
+.club svg{width:62px; height:62px; color:var(--accent); display:block; margin:0 auto 8px}
+.club b{display:block; font-size:16.5px; margin-bottom:4px}
+.club span{font-size:13px; color:var(--muted); line-height:1.5; display:block}
+.rank{position:absolute; inset-inline-start:10px; top:10px; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:15px; color:#fff; background:var(--accent)}
+.rank.r1{background:var(--pick1)} .rank.r2{background:var(--pick2)} .rank.r3{background:var(--pick3)}
+.clubmini{display:inline-flex; align-items:center; gap:6px}
+.clubmini svg{width:20px; height:20px; color:var(--accent); flex:0 0 auto}
+.stage{position:fixed; inset-inline-start:-4000px; top:0}
+#sheet{width:900px; background:#fff; color:#000; padding:40px; direction:rtl; font-family:"Assistant",Arial,sans-serif}
+#sheet h2{font-size:22px; margin:0 0 4px; color:#000}
+#sheet .meta{font-size:13px; color:#555; margin-bottom:18px}
+#sheet table{font-size:14px}
+#sheet th,#sheet td{border:1px solid #bbb; padding:7px 9px; color:#000}
+#sheet th{background:#eee}
+#sheet h3{color:#000; font-size:17px; margin:22px 0 8px}
+@media (max-width:640px){ .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card"><div class="empty">טוען…</div></div></div>
+<div class="stage"><div id="sheet"></div></div>
+
+<!-- =======================================================================
+     הדביקו כאן את אותם פרטי חיבור בדיוק שנמצאים ב-index.html
+     ======================================================================= -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBzOVRusCmGeTp2GRd5nMIs6hYuReO2N6g",
+  authDomain: "school-slips.firebaseapp.com",
+  projectId: "school-slips",
+  storageBucket: "school-slips.firebasestorage.app",
+  messagingSenderId: "790484475554",
+  appId: "1:790484475554:web:c3d1685c16d48b395781fb",
+  measurementId: "G-69JRX49BL2"
+};
+</script>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rid = p => (p||'') + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+const norm = s => String(s||'').replace(/\s+/g,' ').trim();
+const nowISO = () => new Date().toISOString();
+const heDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${+d}.${+m}.${y.slice(2)}`; };
+const fmtTime = t => { try{ const d=new Date(t); return d.toLocaleDateString('he-IL')+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
+async function sha(u,p){
+  const buf = new TextEncoder().encode('slips-v1:'+u+':'+p);
+  const h = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ================= club icons (original line art) ================= */
+const ICONS = {
+  chess:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M26 10a6 6 0 0 1 11 3l9 6-5 4 4 15H22l3-10-6 2-4-6 8-6z"/><path d="M18 50h30l3 8H15z"/><circle cx="31" cy="17" r="1.6" fill="currentColor" stroke="none"/></svg>`,
+  photo:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 20h10l4-6h20l4 6h10a3 3 0 0 1 3 3v24a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V23a3 3 0 0 1 3-3z"/>
+    <circle cx="32" cy="35" r="10"/><circle cx="32" cy="35" r="4"/><circle cx="50" cy="25" r="1.6" fill="currentColor" stroke="none"/></svg>`,
+  capoeira:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="34" r="22" stroke-dasharray="5 5"/><circle cx="26" cy="20" r="4"/>
+    <path d="M26 24v10l-8 10M26 30l10 4M34 44l6 8M28 34l-2 14"/></svg>`,
+  dragon:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 6 54 19v26L32 58 10 45V19z"/><path d="M32 6v16M10 19l22 3 22-3M32 22l-14 9 14 27 14-27z"/><path d="M18 31 10 45M46 31l8 14"/></svg>`,
+  circus:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="16" cy="22" r="6"/><circle cx="32" cy="12" r="6"/><circle cx="48" cy="22" r="6"/>
+    <path d="M10 34c4 10 10 14 22 14s18-4 22-14" stroke-dasharray="4 4"/><path d="M32 48v10M24 58h16"/></svg>`,
+  star:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="m32 8 7 15 17 2-12 11 3 17-15-8-15 8 3-17L8 25l17-2z"/></svg>`
+};
+const icon = k => ICONS[k] || ICONS.star;
+const DEFAULT_CLUBS = [
+  {name:'שח מט', icon:'chess', capacity:20, desc:'לומדים פתיחות, טקטיקה וחשיבה קדימה — ומשחקים טורנירים ידידותיים בכיתה.'},
+  {name:'צילום', icon:'photo', capacity:18, desc:'הרכב תמונה, אור וצל וזווית צילום, עם יציאות לצלם בשטח ותערוכה בסוף השנה.'},
+  {name:'קפוארה', icon:'capoeira', capacity:24, desc:'אמנות לחימה ברזילאית המשלבת תנועה, מוזיקה וקצב — בתוך מעגל הרודה.'},
+  {name:'מבוכים ודרקונים', icon:'dragon', capacity:16, desc:'משחק תפקידים שיתופי: בונים דמות, מספרים סיפור ומקבלים החלטות כצוות.'},
+  {name:'קרקסנות', icon:'circus', capacity:20, desc:'ג׳אגלינג, שיווי משקל ולהטוטים — ובסוף התהליך מופע קצר מול קהל.'}
+];
+
+/* ================= storage ================= */
+const Store = {
+  fdb:null, fs:null, mode:'local', err:'',
+  async init(){
+    if(!window.FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.indexOf('הדביקו')>-1){ this.err='no-config'; return; }
+    try{
+      const V='https://www.gstatic.com/firebasejs/10.12.2/';
+      const [appMod, fsMod, authMod] = await Promise.all([import(V+'firebase-app.js'), import(V+'firebase-firestore.js'), import(V+'firebase-auth.js')]);
+      const a = appMod.initializeApp(FIREBASE_CONFIG);
+      this.fdb = fsMod.getFirestore(a); this.fs = fsMod;
+      try{ await authMod.signInAnonymously(authMod.getAuth(a)); }catch(e){ this.err='auth: '+(e.code||e.message); }
+      this.mode='cloud';
+    }catch(e){ this.err=(e&&(e.code||e.message))||'init'; this.mode='local'; }
+  },
+  _doc(p){ return this.fs.doc.apply(null,[this.fdb].concat(p.split('/'))); },
+  async get(p){
+    if(this.fdb){ const s=await this.fs.getDoc(this._doc(p)); return s.exists()?s.data():null; }
+    try{ const v=localStorage.getItem('slips:'+p); return v?JSON.parse(v):null; }catch(e){ return null; }
+  },
+  async set(p,d){
+    if(this.fdb) return this.fs.setDoc(this._doc(p),d);
+    try{ localStorage.setItem('slips:'+p, JSON.stringify(d)); }catch(e){ throw e; }
+  },
+  async del(p){
+    if(this.fdb) return this.fs.deleteDoc(this._doc(p));
+    try{ localStorage.removeItem('slips:'+p); }catch(e){}
+  },
+  async list(coll, field, value){
+    if(this.fdb){
+      const ref = this.fs.collection.apply(null,[this.fdb].concat(coll.split('/')));
+      const q = field ? this.fs.query(ref, this.fs.where(field,'==',value)) : ref;
+      const snap = await this.fs.getDocs(q); const out=[];
+      snap.forEach(d=>out.push(Object.assign({_id:d.id}, d.data()))); return out;
+    }
+    const out=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && k.startsWith('slips:'+coll+'/')){
+        const id=k.slice(('slips:'+coll+'/').length); if(id.indexOf('/')>-1) continue;
+        try{ const o=JSON.parse(localStorage.getItem(k)); if(!field||o[field]===value) out.push(Object.assign({_id:id},o)); }catch(e){}
+      }
+    }
+    return out;
+  }
+};
+async function saveFile(filename, blob){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* ================= session ================= */
+let ME=null, CLUBS=[];
+const saveSession = u => { try{ sessionStorage.setItem('slips_me',u); }catch(e){} };
+const clearSession = () => { try{ sessionStorage.removeItem('slips_me'); }catch(e){} };
+const clubById = id => CLUBS.find(c=>c._id===id) || {name:'—', icon:'star', desc:''};
+async function loadClubs(){ CLUBS = (await Store.list('clubs')).sort((a,b)=>(a.order||0)-(b.order||0)); return CLUBS; }
+async function seedClubs(){
+  for(let i=0;i<DEFAULT_CLUBS.length;i++){
+    const c = DEFAULT_CLUBS[i];
+    await Store.set('clubs/c_'+(i+1), {name:c.name, desc:c.desc, icon:c.icon, capacity:c.capacity, order:i, active:true});
+  }
+  return loadClubs();
+}
+
+function modeBanner(){
+  if(Store.mode==='cloud') return '';
+  const why = Store.err==='no-config'
+    ? 'לא הוגדרו פרטי החיבור ל-Firebase בראש הקובץ gvanim.html.'
+    : 'החיבור ל-Firebase נכשל ('+esc(Store.err)+').';
+  return `<div class="warnbox"><b>מצב מקומי — הנתונים נשמרים רק בדפדפן הזה.</b><br>${why}<br>
+    יש להדביק כאן את אותם פרטי חיבור שבקובץ index.html.</div>`;
+}
+function header(sub, extra){
+  return `<div class="topbar">
+    <div class="brand">בחירת חוגי גוונים<small>${esc(sub||'')}</small></div>${extra||''}
+    <span class="note">${esc(ME?(ME.name||ME.username)+' · '+roleName(ME.role):'')}</span>
+    <button class="btn ghost sm" id="out">יציאה</button></div>`;
+}
+const roleName = r => r==='admin'?'מנהל מערכת' : r==='gvanim'?'אחראי גוונים' : 'מורה';
+function bindOut(){ const b=$('#out'); if(b) b.onclick=()=>{ ME=null; clearSession(); loginPage(); }; }
+
+/* ================= boot ================= */
+(async function boot(){
+  await Store.init();
+  await loadClubs();
+  const m = location.hash.match(/[#&]g=([A-Za-z0-9_\-]+)/);
+  if(m) return studentPage(m[1]);
+  const cfg = await Store.get('app/config');
+  if(!cfg || !cfg.bootstrapped){
+    app.innerHTML = header('') + modeBanner() + `<div class="card"><h2>המערכת טרם הוגדרה</h2>
+      <p class="sub">יש להיכנס תחילה למערכת אישורי ההורים (index.html) וליצור שם את חשבון המנהל. החשבונות משותפים לשתי המערכות.</p></div>`;
+    return;
+  }
+  let saved=null; try{ saved=sessionStorage.getItem('slips_me'); }catch(e){}
+  if(saved){ const u=await Store.get('users/'+saved); if(u && u.active!==false){ ME=Object.assign({_id:saved},u); return home(); } }
+  loginPage();
+})();
+
+function loginPage(msg){
+  app.innerHTML = `<div class="topbar"><div class="brand">בחירת חוגי גוונים<small>כניסה למערכת</small></div></div>${modeBanner()}
+    <div class="card" style="max-width:420px; margin:0 auto"><h2>כניסה</h2>
+      <div style="display:grid; gap:12px">
+        <div><label>שם משתמש</label><input id="u" autocomplete="username"></div>
+        <div><label>סיסמה</label><input id="p" type="password" autocomplete="current-password"></div></div>
+      <div class="row mt"><button class="btn" id="go" style="width:100%">כניסה</button></div>
+      <p class="note" style="margin-top:12px">אותם שם משתמש וסיסמה של מערכת אישורי ההורים.</p>
+      <div id="msg">${msg?`<div class="err">${esc(msg)}</div>`:''}</div></div>`;
+  const doLogin = async () => {
+    const u=norm($('#u').value), p=$('#p').value;
+    const rec = await Store.get('users/'+u);
+    if(!rec || rec.active===false || rec.hash!==await sha(u,p)) return $('#msg').innerHTML='<div class="err">שם משתמש או סיסמה שגויים.</div>';
+    ME=Object.assign({_id:u},rec); saveSession(u); home();
+  };
+  $('#go').onclick=doLogin; $('#p').onkeydown=e=>{ if(e.key==='Enter') doLogin(); }; $('#u').focus();
+}
+function home(){ (ME.role==='admin'||ME.role==='gvanim') ? managerPage() : teacherPage(ME.folderId); }
+
+/* ================= teacher ================= */
+async function teacherPage(folderId, asManager){
+  if(!folderId){ app.innerHTML=header('תיקיית המורה')+`<div class="card"><div class="empty">לא שויכה לך תיקייה. פנו למנהל המערכת.</div></div>`; return bindOut(); }
+  app.innerHTML=header('טוען…')+`<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const folder = await Store.get('folders/'+folderId);
+  const roster = (folder&&folder.roster)||[];
+  const rounds = (await Store.list('grounds','folderId',folderId)).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const picks = await Store.list('gpicks','folderId',folderId);
+  const back = asManager?`<button class="btn ghost sm" id="back">חזרה לניהול גוונים</button>`:'';
+
+  app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + `
+    <div class="card">
+      <h2>רשימת התלמידים בכיתה</h2>
+      <p class="sub">הרשימה משותפת עם מערכת אישורי ההורים — מי שכבר הקליד אותה שם, רואה אותה כאן.</p>
+      <label>שורה לכל תלמיד/ה</label>
+      <textarea id="froster" style="min-height:140px">${esc(roster.join('\n'))}</textarea>
+      <div class="row mt"><button class="btn" id="saveRoster">שמירת הרשימה</button>
+        <span class="note" id="rcount">${roster.length} תלמידים ברשימה</span></div><div id="rmsg"></div>
+    </div>
+    <div class="card">
+      <h2>סבבי בחירה</h2>
+      ${rounds.length? rounds.map(r=>{
+        const n = picks.filter(p=>p.roundId===r._id).length;
+        return `<div class="listrow"><div class="main"><b>${esc(r.title)}</b>
+          <div class="note">${r.deadline?'עד '+esc(heDate(r.deadline))+' · ':''}${(r.clubIds||[]).length} חוגים · מילאו ${n}${roster.length?' מתוך '+roster.length:''}</div></div>
+          <span class="tag ${r.closed?'no':'ok'}">${r.closed?'סגור':'פתוח'}</span>
+          <button class="btn ghost sm" data-r="${esc(r._id)}">פתיחה</button></div>`;
+      }).join('') : `<div class="empty">אין עדיין סבב בחירה. צרו אחד למטה.</div>`}
+    </div>
+    <div class="card"><h2>סבב בחירה חדש</h2>
+      ${CLUBS.length? `
+      <div class="grid">
+        <div><label>שם הסבב</label><input id="title" value="בחירת חוגי גוונים ${new Date().getFullYear()}"></div>
+        <div><label>תאריך אחרון למילוי</label><input type="date" id="deadline"></div>
+        <div class="full"><label>הודעה להורים ולתלמידים (לא חובה)</label>
+          <input id="intro" value="יש לבחור שלושה חוגים לפי סדר העדפה. השיבוץ הסופי ייקבע על ידי בית הספר."></div>
+        <div class="full"><label>החוגים המוצעים בסבב זה</label>
+          <div class="clubs" id="pickClubs">${CLUBS.map(c=>`
+            <div class="club on" data-c="${esc(c._id)}">${icon(c.icon)}<b>${esc(c.name)}</b><span>${esc(c.desc)}</span></div>`).join('')}</div>
+          <p class="note" style="margin-top:8px">לחיצה על חוג מסירה או מוסיפה אותו לסבב.</p></div>
+      </div>
+      <div class="row mt"><button class="btn" id="create">יצירת הסבב וקבלת קישור</button></div>`
+      : `<div class="empty">רשימת החוגים טרם הוגדרה במערכת. אחראי הגוונים צריך להגדיר אותה תחילה.</div>`}
+      <div id="msg"></div></div>`;
+  bindOut();
+  if(asManager) $('#back').onclick=()=>managerPage('assign');
+  app.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>roundPage(b.dataset.r, folderId, asManager));
+  $('#saveRoster').onclick = async () => {
+    const list = $('#froster').value.split('\n').map(norm).filter(Boolean);
+    const f = Object.assign({}, folder||{}); delete f._id; f.roster=list;
+    await Store.set('folders/'+folderId, f); folder.roster=list;
+    $('#rcount').textContent=list.length+' תלמידים ברשימה';
+    $('#rmsg').innerHTML='<div class="ok">הרשימה נשמרה ✓</div>';
+  };
+  const sel = {}; CLUBS.forEach(c=>sel[c._id]=true);
+  app.querySelectorAll('#pickClubs .club').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.c; sel[id]=!sel[id]; el.classList.toggle('on', sel[id]);
+  });
+  const cr = $('#create');
+  if(cr) cr.onclick = async () => {
+    const ids = CLUBS.filter(c=>sel[c._id]).map(c=>c._id);
+    if(ids.length<3) return $('#msg').innerHTML='<div class="err">יש לבחור לפחות שלושה חוגים לסבב.</div>';
+    const id = rid('g_');
+    await Store.set('grounds/'+id, {folderId, title:norm($('#title').value)||'בחירת חוגים',
+      deadline:$('#deadline').value, intro:norm($('#intro').value), clubIds:ids,
+      closed:false, createdAt:nowISO(), createdBy:ME.username, folderName:(folder&&folder.name)||''});
+    roundPage(id, folderId, asManager);
+  };
+}
+
+/* ================= round page (teacher tracking + assignment) ================= */
+async function roundPage(rid_, folderId, asManager){
+  app.innerHTML=header('טוען…')+`<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const r = await Store.get('grounds/'+rid_); if(!r) return teacherPage(folderId, asManager);
+  r._id=rid_;
+  const folder = await Store.get('folders/'+folderId);
+  const roster = (folder&&folder.roster)||[];
+  const picks = await Store.list('gpicks','roundId',rid_);
+  const link = location.origin + location.pathname + location.search + '#g=' + rid_;
+  const byName = {}; picks.forEach(p=>byName[norm(p.student)]=p);
+  const names = roster.slice();
+  picks.forEach(p=>{ if(!names.some(n=>norm(n)===norm(p.student))) names.push(p.student); });
+  const clubOpts = (selId) => `<option value="">— לא שובץ —</option>` +
+    (r.clubIds||[]).map(id=>`<option value="${esc(id)}" ${selId===id?'selected':''}>${esc(clubById(id).name)}</option>`).join('');
+
+  const rows = names.map(n=>{
+    const p = byName[norm(n)];
+    const ch = p ? (p.choices||[]).map((c,i)=>`<span class="tag ${i===0?'p1':'no'}">${i+1}. ${esc(clubById(c).name)}</span>`).join(' ') : '';
+    return `<tr><td>${esc(n)}</td>
+      <td>${p?ch:'<span class="tag no">טרם בחר/ה</span>'}</td>
+      <td>${p?`<select data-as="${esc(p._id)}" style="min-width:150px">${clubOpts(p.assigned||'')}</select>`:''}</td>
+      <td class="note">${p?esc(fmtTime(p.submittedAt)):''}</td>
+      <td>${p?`<button class="btn dngr sm" data-rm="${esc(p._id)}">מחיקה</button>`:''}</td></tr>`;
+  }).join('');
+
+  const counts = {}; (r.clubIds||[]).forEach(id=>counts[id]=0);
+  picks.forEach(p=>{ if(p.assigned && counts[p.assigned]!==undefined) counts[p.assigned]++; });
+
+  app.innerHTML = header('סבב: '+r.title, `<button class="btn ghost sm" id="back">חזרה לתיקייה</button>`) + modeBanner() + `
+    <div class="card">
+      <h2>${esc(r.title)}</h2>
+      <p class="sub">${r.deadline?'עד '+esc(heDate(r.deadline))+' · ':''}נוצר ${esc(fmtTime(r.createdAt))}</p>
+      <div class="linkbox"><strong>קישור לבחירה עבור ההורים והתלמידים</strong>
+        <code id="lnk">${esc(link)}</code>
+        <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
+          <button class="btn ghost sm" id="prev">תצוגה מקדימה</button>
+          <button class="btn ghost sm" id="toggle">${r.closed?'פתיחה למילוי':'סגירה למילוי'}</button></div></div>
+    </div>
+    <div class="card">
+      <h2>בחירות ושיבוץ · ${picks.length}${roster.length?' מתוך '+roster.length:''}</h2>
+      <div class="scroll"><table><tr><th>תלמיד/ה</th><th>בחירות לפי סדר</th><th>שיבוץ סופי</th><th>מילא בתאריך</th><th></th></tr>${rows||''}</table></div>
+      ${names.length?'':'<div class="empty">אף אחד טרם מילא.</div>'}
+      <h3>מצב התפוסה בשיבוץ הנוכחי</h3>
+      <div class="row">${(r.clubIds||[]).map(id=>{const c=clubById(id);
+        return `<span class="tag ${counts[id]>(c.capacity||99)?'no':'ok'}">${esc(c.name)}: ${counts[id]}${c.capacity?' / '+c.capacity:''}</span>`;}).join('')}</div>
+      <div class="row mt">
+        <button class="btn" id="auto" ${picks.length?'':'disabled'}>שיבוץ אוטומטי לפי העדפות</button>
+        <button class="btn ghost" id="xls" ${picks.length?'':'disabled'}>ייצוא Excel</button>
+        <button class="btn ghost" id="pdf" ${picks.length?'':'disabled'}>ייצוא PDF</button>
+        <button class="btn dngr" id="clear" ${picks.length?'':'disabled'}>ניקוי השיבוץ</button>
+        <button class="btn dngr" id="reset" ${picks.length?'':'disabled'}>איפוס כל הבחירות</button>
+        <button class="btn dngr" id="delr">מחיקת הסבב</button>
+      </div><div id="msg"></div>
+    </div>`;
+  bindOut();
+  $('#back').onclick=()=>teacherPage(folderId, asManager);
+  $('#copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }catch(e){ $('#copy').textContent='סמנו והעתיקו ידנית'; } };
+  $('#prev').onclick=()=>studentPage(rid_, ()=>roundPage(rid_, folderId, asManager));
+  $('#toggle').onclick=async()=>{ const c=Object.assign({},r); delete c._id; c.closed=!r.closed; await Store.set('grounds/'+rid_,c); roundPage(rid_,folderId,asManager); };
+  app.querySelectorAll('[data-as]').forEach(sl=>sl.onchange=async()=>{
+    const p = picks.find(x=>x._id===sl.dataset.as); const c=Object.assign({},p); delete c._id;
+    c.assigned = sl.value||null; c.assignedBy = ME.username; c.assignedAt = nowISO();
+    await Store.set('gpicks/'+p._id, c); p.assigned=c.assigned;
+    $('#msg').innerHTML='<div class="ok">השיבוץ נשמר ✓</div>';
+  });
+  app.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('למחוק את הבחירה הזאת?')) return;
+    await Store.del('gpicks/'+b.dataset.rm); roundPage(rid_,folderId,asManager);
+  });
+  $('#auto').onclick = async () => {
+    if(!confirm('לבצע שיבוץ אוטומטי? שיבוצים ידניים קיימים יידרסו.')) return;
+    const res = autoAssign(picks, r.clubIds||[]);
+    for(const p of picks){ const c=Object.assign({},p); delete c._id; c.assigned=res[p._id]||null; c.assignedBy='auto'; c.assignedAt=nowISO(); await Store.set('gpicks/'+p._id,c); }
+    roundPage(rid_,folderId,asManager);
+  };
+  $('#clear').onclick = async () => {
+    if(!confirm('לנקות את כל השיבוצים? הבחירות של התלמידים יישמרו.')) return;
+    for(const p of picks){ const c=Object.assign({},p); delete c._id; c.assigned=null; await Store.set('gpicks/'+p._id,c); }
+    roundPage(rid_,folderId,asManager);
+  };
+  $('#reset').onclick = async () => {
+    if(!confirm('למחוק את כל הבחירות בסבב זה? הפעולה אינה הפיכה.')) return;
+    for(const p of picks) await Store.del('gpicks/'+p._id);
+    roundPage(rid_,folderId,asManager);
+  };
+  $('#delr').onclick = async () => {
+    if(!confirm('למחוק את הסבב ואת כל הבחירות שבו?')) return;
+    for(const p of picks) await Store.del('gpicks/'+p._id);
+    await Store.del('grounds/'+rid_); teacherPage(folderId, asManager);
+  };
+  $('#xls').onclick = () => exportXLS([{title:(folder&&folder.name)||r.title, picks}], r.title);
+  $('#pdf').onclick = () => exportPDF([{title:((folder&&folder.name)||'')+' · '+r.title, picks}], r.title);
+}
+
+/* ================= auto assignment ================= */
+function autoAssign(picks, clubIds){
+  const cap = {}; clubIds.forEach(id=>{ const c=clubById(id); cap[id] = c.capacity || 999; });
+  const count = {}; clubIds.forEach(id=>count[id]=0);
+  const out = {}; let pending = picks.slice();
+  for(let pref=0; pref<3; pref++){
+    const byClub = {};
+    pending.forEach(p=>{ const id=(p.choices||[])[pref]; if(!id||cap[id]===undefined) return; (byClub[id]=byClub[id]||[]).push(p); });
+    const still=[];
+    Object.keys(byClub).forEach(id=>{
+      const arr = byClub[id].slice().sort(()=>Math.random()-0.5);
+      arr.forEach(p=>{ if(count[id] < cap[id]){ out[p._id]=id; count[id]++; } });
+    });
+    pending = pending.filter(p=>!out[p._id]);
+  }
+  pending.forEach(p=>{ const free = clubIds.find(id=>count[id]<cap[id]); if(free){ out[p._id]=free; count[free]++; } });
+  return out;
+}
+
+/* ================= exports ================= */
+function pickRows(picks){
+  return picks.map(p=>[
+    p.student||'', p.cls||'',
+    clubById((p.choices||[])[0]).name, clubById((p.choices||[])[1]).name, clubById((p.choices||[])[2]).name,
+    p.assigned?clubById(p.assigned).name:'', p.parent||'', p.phone||'', fmtTime(p.submittedAt)
+  ]);
+}
+const HEAD = ['תלמיד/ה','כיתה','בחירה 1','בחירה 2','בחירה 3','שיבוץ סופי','הורה','טלפון','מועד מילוי'];
+function exportXLS(groups, title){
+  const wb = XLSX.utils.book_new();
+  const all = [];
+  groups.forEach(g=>{
+    const aoa = [HEAD].concat(pickRows(g.picks));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:22},{wch:8},{wch:16},{wch:16},{wch:16},{wch:16},{wch:18},{wch:14},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, (g.title||'גיליון').slice(0,28).replace(/[\\\/\?\*\[\]:]/g,'-'));
+    g.picks.forEach(p=>all.push(p));
+  });
+  if(groups.length>1){
+    const byClub = {};
+    all.forEach(p=>{ if(p.assigned) (byClub[p.assigned]=byClub[p.assigned]||[]).push(p); });
+    const aoa=[['חוג','תלמיד/ה','כיתה']];
+    Object.keys(byClub).forEach(id=>byClub[id].forEach(p=>aoa.push([clubById(id).name, p.student||'', p.cls||''])));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'רשימות לפי חוג');
+  }
+  const buf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  saveFile((title||'גוונים')+'.xlsx', new Blob([buf],{type:'application/octet-stream'}));
+}
+async function exportPDF(groups, title){
+  const all=[]; groups.forEach(g=>g.picks.forEach(p=>all.push(p)));
+  const byClub={}; all.forEach(p=>{ if(p.assigned)(byClub[p.assigned]=byClub[p.assigned]||[]).push(p); });
+  const tbl = g => `<h3>${esc(g.title)}</h3><table><tr>${HEAD.slice(0,6).map(h=>`<th>${esc(h)}</th>`).join('')}</tr>
+    ${pickRows(g.picks).map(r=>`<tr>${r.slice(0,6).map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+  $('#sheet').innerHTML = `<h2>${esc(title||'חוגי גוונים')}</h2>
+    <div class="meta">הופק ב-${esc(fmtTime(nowISO()))} · ${all.length} תלמידים</div>
+    ${groups.map(tbl).join('')}
+    ${Object.keys(byClub).length?`<h3>רשימות סופיות לפי חוג</h3>${Object.keys(byClub).map(id=>
+      `<h3>${esc(clubById(id).name)} — ${byClub[id].length} משתתפים</h3><table><tr><th>#</th><th>תלמיד/ה</th><th>כיתה</th></tr>
+       ${byClub[id].map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.student||'')}</td><td>${esc(p.cls||'')}</td></tr>`).join('')}</table>`).join('')}`:''}`;
+  await new Promise(r=>setTimeout(r,60));
+  const canvas = await html2canvas($('#sheet'), {scale:2, backgroundColor:'#ffffff'});
+  const {jsPDF} = window.jspdf; const pdf = new jsPDF('p','mm','a4');
+  const img = canvas.toDataURL('image/jpeg',0.92);
+  const w=210, h=canvas.height*w/canvas.width;
+  let pos=0;
+  while(pos < h){ pdf.addImage(img,'JPEG',0,-pos,w,h); pos+=297; if(pos<h) pdf.addPage(); }
+  saveFile((title||'גוונים')+'.pdf', pdf.output('blob'));
+}
+
+/* ================= manager / admin ================= */
+async function managerPage(tab){
+  tab = tab||'assign';
+  app.innerHTML=header('ניהול גוונים')+`<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const [folders, rounds, picks, users] = await Promise.all([
+    Store.list('folders'), Store.list('grounds'), Store.list('gpicks'), Store.list('users')
+  ]);
+  const fName = id => { const f=folders.find(x=>x._id===id); return f?f.name:'—'; };
+  const counts={}; CLUBS.forEach(c=>counts[c._id]=0);
+  picks.forEach(p=>{ if(p.assigned && counts[p.assigned]!==undefined) counts[p.assigned]++; });
+
+  const assignTab = () => `
+    <div class="card"><h2>מצב כללי</h2>
+      <div class="row">${CLUBS.map(c=>`<span class="tag ${counts[c._id]>(c.capacity||99)?'no':'ok'}">${esc(c.name)}: ${counts[c._id]}${c.capacity?' / '+c.capacity:''}</span>`).join('')}</div>
+      <p class="note" style="margin-top:10px">${picks.length} בחירות מ-${rounds.length} סבבים · ${picks.filter(p=>p.assigned).length} שובצו · ${picks.filter(p=>!p.assigned).length} ממתינים לשיבוץ.</p>
+      <div class="row mt">
+        <button class="btn" id="autoAll" ${picks.length?'':'disabled'}>שיבוץ אוטומטי לכלל בית הספר</button>
+        <button class="btn ghost" id="xlsAll" ${picks.length?'':'disabled'}>ייצוא Excel מלא</button>
+        <button class="btn ghost" id="pdfAll" ${picks.length?'':'disabled'}>ייצוא PDF מלא</button>
+        <button class="btn dngr" id="clearAll" ${picks.length?'':'disabled'}>ניקוי כל השיבוצים</button>
+      </div><div id="msg"></div>
+    </div>
+    <div class="card"><h2>כל התלמידים</h2>
+      ${picks.length?`<div class="scroll"><table><tr><th>תלמיד/ה</th><th>כיתה</th><th>בחירות</th><th>שיבוץ סופי</th></tr>
+        ${picks.slice().sort((a,b)=>(a.student||'').localeCompare(b.student||'','he')).map(p=>`<tr>
+          <td>${esc(p.student)}</td><td>${esc(p.cls||fName(p.folderId))}</td>
+          <td>${(p.choices||[]).map((c,i)=>`<span class="tag ${i===0?'p1':'no'}">${i+1}. ${esc(clubById(c).name)}</span>`).join(' ')}</td>
+          <td><select data-as="${esc(p._id)}" style="min-width:150px"><option value="">— לא שובץ —</option>
+            ${CLUBS.map(c=>`<option value="${esc(c._id)}" ${p.assigned===c._id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></td></tr>`).join('')}
+      </table></div>`:`<div class="empty">אין עדיין בחירות.</div>`}
+    </div>
+    <div class="card"><h2>סבבים לפי כיתה</h2>
+      ${rounds.length? rounds.map(r=>`<div class="listrow"><div class="main"><b>${esc(fName(r.folderId))}</b>
+        <div class="note">${esc(r.title)} · ${picks.filter(p=>p.roundId===r._id).length} בחירות</div></div>
+        <button class="btn ghost sm" data-f="${esc(r.folderId)}">פתיחת התיקייה</button></div>`).join('')
+      : `<div class="empty">טרם נפתחו סבבים.</div>`}
+    </div>`;
+
+  const clubsTab = () => `
+    <div class="card"><h2>החוגים המוצעים</h2>
+      ${CLUBS.length? `<div class="clubs">${CLUBS.map(c=>`<div class="club">${icon(c.icon)}<b>${esc(c.name)}</b><span>${esc(c.desc)}</span>
+        <div class="row" style="justify-content:center; margin-top:10px"><span class="tag no">עד ${c.capacity||'—'} משתתפים</span>
+        <button class="btn ghost sm" data-ec="${esc(c._id)}">עריכה</button></div></div>`).join('')}</div>`
+      : `<div class="empty">רשימת החוגים טרם נטענה.</div>
+         <div class="row" style="justify-content:center"><button class="btn" id="seed">טעינת חמשת החוגים</button></div>`}
+      <div id="cmsg"></div>
+    </div>
+    ${CLUBS.length?`<div class="card"><h2>הוספת חוג</h2>
+      <div class="grid">
+        <div><label>שם החוג</label><input id="nn"></div>
+        <div><label>מספר מקומות</label><input id="nc" type="number" value="20"></div>
+        <div class="full"><label>תיאור קצר</label><input id="nd"></div>
+        <div class="full"><label>אייקון</label><select id="ni">
+          ${Object.keys(ICONS).map(k=>`<option value="${k}">${k}</option>`).join('')}</select></div>
+      </div>
+      <div class="row mt"><button class="btn" id="addc">הוספה</button></div></div>`:''}`;
+
+  const usersTab = () => `
+    <div class="card"><h2>אחראי גוונים</h2>
+      <p class="sub">משתמש שרואה את כל הכיתות ומבצע את השיבוץ הסופי לכלל בית הספר.</p>
+      ${users.filter(u=>u.role==='gvanim').map(u=>`<div class="listrow"><div class="main"><b>${esc(u.name||u.username)}</b>
+        <div class="note">${esc(u.username)}</div></div>
+        <button class="btn ghost sm" data-pw="${esc(u.username)}">סיסמה</button>
+        <button class="btn dngr sm" data-du="${esc(u.username)}">מחיקה</button></div>`).join('') || `<div class="empty">טרם הוגדר אחראי גוונים.</div>`}
+      <h3>הוספת אחראי</h3>
+      <div class="grid">
+        <div><label>שם מלא</label><input id="gn"></div>
+        <div><label>שם משתמש</label><input id="gu" placeholder="באנגלית"></div>
+        <div><label>סיסמה</label><input id="gp" type="text"></div>
+      </div>
+      <div class="row mt"><button class="btn" id="addg">הוספה</button></div><div id="umsg"></div>
+    </div>`;
+
+  app.innerHTML = header('ניהול גוונים') + modeBanner() + `
+    <div class="tabs">
+      <button data-tab="assign" class="${tab==='assign'?'on':''}">שיבוצים</button>
+      <button data-tab="clubs" class="${tab==='clubs'?'on':''}">חוגים</button>
+      ${ME.role==='admin'?`<button data-tab="users" class="${tab==='users'?'on':''}">משתמשים</button>`:''}
+    </div>
+    ${tab==='assign'?assignTab(): tab==='clubs'?clubsTab(): usersTab()}`;
+  bindOut();
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>managerPage(b.dataset.tab));
+
+  if(tab==='assign'){
+    app.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>teacherPage(b.dataset.f, true));
+    app.querySelectorAll('[data-as]').forEach(sl=>sl.onchange=async()=>{
+      const p=picks.find(x=>x._id===sl.dataset.as); const c=Object.assign({},p); delete c._id;
+      c.assigned=sl.value||null; c.assignedBy=ME.username; c.assignedAt=nowISO();
+      await Store.set('gpicks/'+p._id,c); p.assigned=c.assigned;
+      $('#msg').innerHTML='<div class="ok">השיבוץ נשמר ✓</div>';
+    });
+    $('#autoAll').onclick = async () => {
+      if(!confirm('לבצע שיבוץ אוטומטי לכלל התלמידים? שיבוצים קיימים יידרסו.')) return;
+      $('#msg').innerHTML='<div class="note">משבץ…</div>';
+      const res = autoAssign(picks, CLUBS.map(c=>c._id));
+      for(const p of picks){ const c=Object.assign({},p); delete c._id; c.assigned=res[p._id]||null; c.assignedBy='auto'; c.assignedAt=nowISO(); await Store.set('gpicks/'+p._id,c); }
+      managerPage('assign');
+    };
+    $('#clearAll').onclick = async () => {
+      if(!confirm('לנקות את כל השיבוצים בכל בית הספר?')) return;
+      for(const p of picks){ const c=Object.assign({},p); delete c._id; c.assigned=null; await Store.set('gpicks/'+p._id,c); }
+      managerPage('assign');
+    };
+    const groups = () => folders.map(f=>({title:f.name, picks:picks.filter(p=>p.folderId===f._id)})).filter(g=>g.picks.length);
+    $('#xlsAll').onclick = () => exportXLS(groups(), 'שיבוץ חוגי גוונים');
+    $('#pdfAll').onclick = async () => { $('#msg').innerHTML='<div class="note">מייצר PDF…</div>'; await exportPDF(groups(),'שיבוץ חוגי גוונים'); $('#msg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; };
+  }
+  if(tab==='clubs'){
+    const seed=$('#seed'); if(seed) seed.onclick=async()=>{ await seedClubs(); managerPage('clubs'); };
+    app.querySelectorAll('[data-ec]').forEach(b=>b.onclick=async()=>{
+      const c = CLUBS.find(x=>x._id===b.dataset.ec);
+      const name = prompt('שם החוג:', c.name); if(name===null) return;
+      const desc = prompt('תיאור קצר:', c.desc); if(desc===null) return;
+      const cap = prompt('מספר מקומות:', c.capacity); if(cap===null) return;
+      await Store.set('clubs/'+c._id, {name:norm(name), desc:norm(desc), capacity:parseInt(cap,10)||20, icon:c.icon, order:c.order||0, active:true});
+      await loadClubs(); managerPage('clubs');
+    });
+    const addc=$('#addc'); if(addc) addc.onclick=async()=>{
+      const n=norm($('#nn').value); if(!n) return $('#cmsg').innerHTML='<div class="err">נא להזין שם חוג.</div>';
+      await Store.set('clubs/'+rid('c_'), {name:n, desc:norm($('#nd').value), capacity:parseInt($('#nc').value,10)||20, icon:$('#ni').value, order:CLUBS.length, active:true});
+      await loadClubs(); managerPage('clubs');
+    };
+  }
+  if(tab==='users'){
+    $('#addg').onclick = async () => {
+      const n=norm($('#gn').value), u=norm($('#gu').value), p=$('#gp').value;
+      if(!n||!u||p.length<4) return $('#umsg').innerHTML='<div class="err">נא למלא את כל השדות (סיסמה: 4 תווים לפחות).</div>';
+      if(!/^[A-Za-z0-9_.\-]+$/.test(u)) return $('#umsg').innerHTML='<div class="err">שם משתמש באותיות אנגליות בלבד.</div>';
+      if(await Store.get('users/'+u)) return $('#umsg').innerHTML='<div class="err">שם המשתמש כבר קיים.</div>';
+      await Store.set('users/'+u, {username:u, name:n, role:'gvanim', hash:await sha(u,p), active:true, createdAt:nowISO()});
+      managerPage('users');
+    };
+    app.querySelectorAll('[data-pw]').forEach(b=>b.onclick=async()=>{
+      const u=b.dataset.pw, p=prompt('סיסמה חדשה עבור '+u+':'); if(!p||p.length<4) return;
+      const r=await Store.get('users/'+u); r.hash=await sha(u,p); await Store.set('users/'+u,r); alert('הסיסמה עודכנה.');
+    });
+    app.querySelectorAll('[data-du]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('למחוק את המשתמש '+b.dataset.du+'?')) return;
+      await Store.del('users/'+b.dataset.du); managerPage('users');
+    });
+  }
+}
+
+/* ================= student / parent page ================= */
+async function studentPage(rid_, onBack){
+  app.innerHTML=`<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
+  const r = await Store.get('grounds/'+rid_);
+  if(!r){ app.innerHTML=`<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">ייתכן שהסבב נמחק. פנו למורה.</p></div>`; return; }
+  if(r.closed){ app.innerHTML=`<div class="card"><h2>הבחירה נסגרה</h2><p class="sub">${esc(r.title)}. פנו למורה.</p></div>`; return; }
+  if(!CLUBS.length) await loadClubs();
+  const folder = await Store.get('folders/'+r.folderId);
+  const roster = (folder&&folder.roster)||[];
+  const clubs = (r.clubIds||[]).map(clubById);
+  const chosen = [];
+
+  app.innerHTML = `
+    <div class="topbar"><div class="brand">${esc(r.title)}<small>${esc((folder&&folder.name)||'')}</small></div>
+      ${onBack?'<button class="btn ghost sm" id="back">חזרה</button>':''}</div>
+    <div class="card">
+      <h2>בחירת חוגי גוונים</h2>
+      <p class="sub">${esc(r.intro||'יש לבחור שלושה חוגים לפי סדר העדפה.')}${r.deadline?' אחרון להגשה: '+esc(heDate(r.deadline))+'.':''}</p>
+      <div class="grid">
+        <div>${roster.length?`<label>שם התלמיד/ה</label><select id="student"><option value="">— בחרו שם —</option>
+            ${roster.map(n=>`<option>${esc(n)}</option>`).join('')}<option value="__other">אחר…</option></select>
+            <input id="studentOther" style="margin-top:8px; display:none" placeholder="שם מלא">`
+          :`<label>שם התלמיד/ה</label><input id="student" placeholder="שם מלא">`}</div>
+        <div><label>כיתה</label><input id="cls" value="${esc((folder&&folder.name)||'')}"></div>
+        <div><label>שם ההורה</label><input id="parent" placeholder="לא חובה"></div>
+        <div><label>טלפון</label><input id="phone" inputmode="tel" placeholder="לא חובה"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>בחרו שלושה חוגים לפי סדר</h2>
+      <p class="sub">לחיצה ראשונה מסמנת עדיפות 1, השנייה עדיפות 2, השלישית עדיפות 3. לחיצה חוזרת על חוג מבטלת אותו.</p>
+      <div class="clubs" id="grid">
+        ${clubs.map(c=>`<div class="club" data-c="${esc(c._id)}">${icon(c.icon)}<b>${esc(c.name)}</b><span>${esc(c.desc)}</span></div>`).join('')}
+      </div>
+      <div class="row mt"><button class="btn" id="send">שליחת הבחירה</button>
+        <span class="note" id="status">נבחרו 0 מתוך 3</span></div>
+      <div id="msg"></div>
+    </div>`;
+  if(onBack) $('#back').onclick=onBack;
+  const sel = $('#student');
+  if(roster.length) sel.onchange = () => { const o=$('#studentOther'); o.style.display = sel.value==='__other'?'block':'none'; };
+
+  const paint = () => {
+    app.querySelectorAll('#grid .club').forEach(el=>{
+      const i = chosen.indexOf(el.dataset.c);
+      el.classList.toggle('on', i>-1);
+      const old = el.querySelector('.rank'); if(old) old.remove();
+      if(i>-1){ const d=document.createElement('div'); d.className='rank r'+(i+1); d.textContent=i+1; el.appendChild(d); }
+    });
+    $('#status').textContent = 'נבחרו '+chosen.length+' מתוך 3';
+  };
+  app.querySelectorAll('#grid .club').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.c, i=chosen.indexOf(id);
+    if(i>-1) chosen.splice(i,1);
+    else { if(chosen.length>=3){ $('#msg').innerHTML='<div class="err">כבר נבחרו שלושה חוגים. בטלו אחד כדי לשנות.</div>'; return; } chosen.push(id); }
+    $('#msg').innerHTML=''; paint();
+  });
+
+  $('#send').onclick = async () => {
+    const msg=$('#msg');
+    let student = roster.length ? (sel.value==='__other'? norm($('#studentOther').value) : norm(sel.value)) : norm(sel.value);
+    if(!student) return msg.innerHTML='<div class="err">נא לבחור או להזין את שם התלמיד/ה.</div>';
+    if(chosen.length!==3) return msg.innerHTML='<div class="err">יש לבחור בדיוק שלושה חוגים לפי סדר עדיפות.</div>';
+    msg.innerHTML='<div class="note">שולח…</div>';
+    const existing = (await Store.list('gpicks','roundId',rid_)).find(p=>norm(p.student)===student);
+    if(existing && !confirm('כבר נרשמה בחירה עבור '+student+'. להחליף אותה בבחירה החדשה?')) return msg.innerHTML='';
+    const id = existing? existing._id : rid('p_');
+    await Store.set('gpicks/'+id, {roundId:rid_, folderId:r.folderId, student, cls:norm($('#cls').value),
+      parent:norm($('#parent').value), phone:norm($('#phone').value), choices:chosen.slice(),
+      assigned: existing?(existing.assigned||null):null, submittedAt:nowISO()});
+    app.innerHTML = `<div class="card" style="text-align:center">
+      <div style="color:var(--accent); margin:10px auto">${icon('star')}</div>
+      <h2>הבחירה נשלחה ✓</h2>
+      <p class="sub">תודה! הבחירה של ${esc(student)} התקבלה אצל המורה.</p>
+      <div class="row" style="justify-content:center">
+        ${chosen.map((c,i)=>`<span class="tag ${i===0?'p1':'no'}">${i+1}. ${esc(clubById(c).name)}</span>`).join('')}</div>
+      <p class="note" style="margin-top:16px">השיבוץ הסופי ייקבע על ידי בית הספר ויימסר בהמשך.</p></div>`;
+  };
+  paint();
+}
+})();
+</script>
+</body>
+</html>
