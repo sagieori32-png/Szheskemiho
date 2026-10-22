@@ -248,7 +248,7 @@ function bindOut(){ const b=$('#out'); if(b) b.onclick=()=>{ ME=null; clearSessi
   await Store.init();
   await loadClubs();
   const m = location.hash.match(/[#&]g=([A-Za-z0-9_\-]+)/);
-  if(m) return studentPage(m[1]);
+  if(m){ if(!CLUBS.length){ try{ await seedClubs(); }catch(e){} } return studentPage(m[1]); }
   const cfg = await Store.get('app/config');
   if(!cfg || !cfg.bootstrapped){
     app.innerHTML = header('') + modeBanner() + `<div class="card"><h2>המערכת טרם הוגדרה</h2>
@@ -310,7 +310,7 @@ async function teacherPage(folderId, asManager){
     </div>
     <div class="card"><h2>סבב בחירה חדש</h2>
       ${CLUBS.length? `
-      <div class="grid">
+      <div class="grid" id="newRound">
         <div><label>שם הסבב</label><input id="title" value="בחירת חוגי גוונים ${new Date().getFullYear()}"></div>
         <div><label>תאריך אחרון למילוי</label><input type="date" id="deadline"></div>
         <div class="full"><label>הודעה להורים ולתלמידים (לא חובה)</label>
@@ -321,7 +321,8 @@ async function teacherPage(folderId, asManager){
           <p class="note" style="margin-top:8px">לחיצה על חוג מסירה או מוסיפה אותו לסבב.</p></div>
       </div>
       <div class="row mt"><button class="btn" id="create">יצירת הסבב וקבלת קישור</button></div>`
-      : `<div class="empty">רשימת החוגים טרם הוגדרה במערכת. אחראי הגוונים צריך להגדיר אותה תחילה.</div>`}
+      : `<div class="empty">רשימת החוגים טרם נטענה.</div>
+         <div class="row" style="justify-content:center"><button class="btn" id="seedT">טעינת רשימת החוגים</button></div>`}
       <div id="msg"></div></div>`;
   bindOut();
   if(asManager) $('#back').onclick=()=>managerPage('assign');
@@ -333,6 +334,8 @@ async function teacherPage(folderId, asManager){
     $('#rcount').textContent=list.length+' תלמידים ברשימה';
     $('#rmsg').innerHTML='<div class="ok">הרשימה נשמרה ✓</div>';
   };
+  const seedT = $('#seedT');
+  if(seedT) seedT.onclick = async () => { seedT.textContent='טוען…'; try{ await seedClubs(); }catch(e){ return $('#msg').innerHTML='<div class="err">טעינת החוגים נכשלה: '+esc(e.message||e)+'</div>'; } teacherPage(folderId, asManager); };
   const sel = {}; CLUBS.forEach(c=>sel[c._id]=true);
   app.querySelectorAll('#pickClubs .club').forEach(el=>el.onclick=()=>{
     const id=el.dataset.c; sel[id]=!sel[id]; el.classList.toggle('on', sel[id]);
@@ -516,6 +519,7 @@ async function exportPDF(groups, title){
 async function managerPage(tab){
   tab = tab||'assign';
   app.innerHTML=header('ניהול גוונים')+`<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  if(!CLUBS.length){ try{ await seedClubs(); }catch(e){} }
   const [folders, rounds, picks, users] = await Promise.all([
     Store.list('folders'), Store.list('grounds'), Store.list('gpicks'), Store.list('users')
   ]);
