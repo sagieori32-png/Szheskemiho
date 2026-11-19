@@ -357,6 +357,39 @@ function sigData(){
   return t.toDataURL('image/png');
 }
 
+/* ============ קודים קצרים לקישורים ============ */
+/* לכל תיקייה קוד בן 5 תווים, כך שהקישור הוא ‎#k=7q2xd‎ ולא מזהה ארוך.
+   הקוד אקראי ולא ניתן לניחוש, כדי שלא יהיה אפשר לעבור בין כיתות בניחוש. */
+function newCode(){
+  const abc='abcdefghjkmnpqrstuvwxyz23456789'; let o='';
+  for(let i=0;i<5;i++) o += abc[Math.floor(Math.random()*abc.length)];
+  return o;
+}
+async function ensureCodes(folders){
+  const used = new Set(folders.map(f=>f.code).filter(Boolean));
+  let changed = false;
+  for(const f of folders){
+    if(f.code) continue;
+    let c; do{ c = newCode(); } while(used.has(c));
+    used.add(c); f.code = c; changed = true;
+    const rec = Object.assign({}, f); delete rec._id;
+    try{ await Store.set('folders/'+f._id, rec); }catch(e){}
+  }
+  return changed;
+}
+/* מקבל קוד קצר או מזהה מלא ומחזיר את התיקייה */
+async function folderByRef(ref){
+  if(!ref) return null;
+  try{ const d = await Store.get('folders/'+ref); if(d) return Object.assign({_id:ref}, d); }catch(e){}
+  try{
+    const all = await Store.list('folders');
+    const hit = all.find(f=>String(f.code||'').toLowerCase()===String(ref).toLowerCase());
+    return hit || null;
+  }catch(e){ return null; }
+}
+const folderLink = (kind, folder, folderId) =>
+  location.origin + location.pathname + location.search + '#' + kind + '=' + ((folder && folder.code) || folderId);
+
 /* ============ boot ============ */
 (async function boot(){
   await Store.init();
@@ -465,6 +498,7 @@ async function adminPage(tab){
     Store.list('users'), Store.list('folders'), Store.list('events'), Store.list('submissions')
   ]);
   const cfg = await Store.get('app/config') || {};
+  await ensureCodes(folders);
   const cnt = f => events.filter(e=>e.folderId===f._id).length;
   const scnt = f => subs.filter(s=>s.folderId===f._id).length;
 
@@ -490,7 +524,9 @@ async function adminPage(tab){
     if(!folders.length) return `<div class="empty">אין עדיין תיקיות.</div>`;
     return folders.map(f=>{ const owner = users.find(u=>u.folderId===f._id);
       return `<div class="listrow"><div class="main"><b>${esc(f.name)}</b>
-        <div class="meta">${owner?('מורה: '+esc(owner.name||owner.username)):'ללא מורה משויך'} · ${cnt(f)} אירועים · ${scnt(f)} אישורים</div></div>
+        <div class="meta">${owner?('מורה: '+esc(owner.name||owner.username)):'ללא מורה משויך'} · ${cnt(f)} אירועים · ${scnt(f)} אישורים
+          · קוד קישור: <code>${esc(f.code||'—')}</code></div></div>
+        <button class="btn ghost sm" data-code="${esc(f._id)}">קוד חדש</button>
         <button class="btn ghost sm" data-open="${esc(f._id)}">פתיחה</button>
         <button class="btn ghost sm" data-ren="${esc(f._id)}">שינוי שם</button>
         <button class="btn ghost sm" data-asg="${esc(f._id)}">שיוך מורה</button>
@@ -547,7 +583,7 @@ async function adminPage(tab){
       if(!/^[A-Za-z0-9_.\-]+$/.test(u)) return $('#msg').innerHTML='<div class="err">שם המשתמש יכול להכיל אותיות באנגלית, ספרות, נקודה ומקף בלבד.</div>';
       if(await Store.get('users/'+u)) return $('#msg').innerHTML='<div class="err">שם המשתמש כבר קיים.</div>';
       const fid = rid('f_');
-      await Store.set('folders/'+fid, {name:fn, owner:u, createdAt:nowISO()});
+      await Store.set('folders/'+fid, {name:fn, owner:u, code:newCode(), createdAt:nowISO()});
       await Store.set('users/'+u, {username:u, name:n, role:'teacher', folderId:fid, hash:await sha(u,p), active:true, createdAt:nowISO()});
       adminPage('teachers');
     };
@@ -571,11 +607,18 @@ async function adminPage(tab){
     $('#addF').onclick = async () => {
       const n=norm($('#nf').value); if(!n) return $('#msg').innerHTML='<div class="err">נא להזין שם תיקייה.</div>';
       const fid=rid('f_'); const u=$('#nfu').value;
-      await Store.set('folders/'+fid,{name:n, owner:u||null, createdAt:nowISO()});
+      await Store.set('folders/'+fid,{name:n, owner:u||null, code:newCode(), createdAt:nowISO()});
       if(u){ const rec=await Store.get('users/'+u); if(rec){ rec.folderId=fid; await Store.set('users/'+u,rec);} }
       adminPage('folders');
     };
     app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>teacherPage(b.dataset.open,true));
+    app.querySelectorAll('[data-code]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('להנפיק קוד קישור חדש לתיקייה? הקישורים הישנים שכבר נשלחו יפסיקו לעבוד.')) return;
+      const id=b.dataset.code, f=await Store.get('folders/'+id);
+      const used=new Set((await Store.list('folders')).map(x=>x.code).filter(Boolean));
+      let c; do{ c=newCode(); }while(used.has(c));
+      f.code=c; await Store.set('folders/'+id,f); adminPage('folders');
+    });
     app.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{
       const id=b.dataset.ren, f=await Store.get('folders/'+id); const n=prompt('שם חדש לתיקייה:', f.name); if(!n) return;
       f.name=norm(n); await Store.set('folders/'+id,f); adminPage('folders');
@@ -943,7 +986,7 @@ const RANK_WORD = ['','ראשונה','שנייה','שלישית'];
 /* ---------------- student form (#c=folderId) ---------------- */
 async function studentPage(folderId, onBack){
   app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
-  const folder = await Store.get('folders/'+folderId);
+  const folder = await folderByRef(folderId); if(folder) folderId = folder._id;
   if(!folder){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
   const cfg = await Store.get('app/config') || {};
   const list = await getCommittees();
@@ -1039,7 +1082,7 @@ async function committeesTeacher(folderId, asAdmin){
   let picks = (await Store.list('picks','folderId',folderId)).sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'));
   const roster = folder.roster || [];
   const cform = folder.cform || {};
-  const link = location.origin + location.pathname + location.search + '#c=' + folderId;
+  const link = folderLink('c', folder, folderId);
   const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
   const saveFolder = async patch => { const f = Object.assign({}, await Store.get('folders/'+folderId) || {}); f.cform = Object.assign({}, f.cform||{}, patch); await Store.set('folders/'+folderId, f); Object.assign(cform, patch); };
   const savePick = async p => { const c = Object.assign({}, p); delete c._id; await Store.set('picks/'+p._id, c); };
@@ -1306,7 +1349,7 @@ function clubCard(c, rank, clickable){
 /* ---------------- student form (#g=folderId) ---------------- */
 async function gvanimStudent(folderId, onBack){
   app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
-  const folder = await Store.get('folders/'+folderId);
+  const folder = await folderByRef(folderId); if(folder) folderId = folder._id;
   if(!folder){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
   const cfg = await Store.get('app/config') || {};
   const list = clubsForBand(await getClubs(), folderBand(folder));
@@ -1403,7 +1446,7 @@ async function gvanimTeacher(folderId, asAdmin){
   let picks = (await Store.list('gpicks','folderId',folderId)).sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'));
   const roster = folder.roster || [];
   const gform = folder.gform || {};
-  const link = location.origin + location.pathname + location.search + '#g=' + folderId;
+  const link = folderLink('g', folder, folderId);
   const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
   const saveFolder = async patch => { const f = Object.assign({}, await Store.get('folders/'+folderId) || {}); f.gform = Object.assign({}, f.gform||{}, patch); await Store.set('folders/'+folderId, f); Object.assign(gform, patch); };
   const savePick = async p => { const c = Object.assign({}, p); delete c._id; await Store.set('gpicks/'+p._id, c); };
@@ -1699,7 +1742,8 @@ const today10 = () => new Date().toISOString().slice(0,10);
 /* ---------------- הטופס להורים (#k=folderId) — אנונימי לחלוטין ---------------- */
 async function communityForm(folderId, onBack){
   app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
-  const [folder, c, cfg] = await Promise.all([Store.get('folders/'+folderId), getComm(), Store.get('app/config')]);
+  const [folder0, c, cfg] = await Promise.all([folderByRef(folderId), getComm(), Store.get('app/config')]);
+  const folder = folder0; if(folder) folderId = folder._id;
   const back = onBack ? '<button class="btn ghost sm" id="back">חזרה</button>' : '';
   if(!folder || !(c.folders||[]).includes(folderId)){
     app.innerHTML = `<div class="topbar">${back}</div><div class="card"><h2>הטופס אינו פעיל</h2>
@@ -1801,7 +1845,7 @@ async function communityTeacher(folderId, asAdmin){
     if(asAdmin) $('#back').onclick = () => adminPage('folders'); return;
   }
   const resp = (await Store.list('cresp','folderId',folderId)).sort((a,b)=>(a.day||'').localeCompare(b.day||''));
-  const link = location.origin + location.pathname + location.search + '#k=' + folderId;
+  const link = folderLink('k', folder, folderId);
 
   app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('community') + `
     <div class="card">
