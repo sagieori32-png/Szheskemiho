@@ -1674,7 +1674,9 @@ const K_DEFAULT = {
   aQ:'באיזה תחום נדרש סיוע?',
   aOpts:['סיוע בציוד או בצרכים חומריים','תמיכה בתקופת שירות מילואים של אחד ההורים','סיוע שפתי או לימודי','תמיכה חברתית או משפחתית','אחר'],
   aFree:'נשמח שתפרטו בקצרה את הצורך (רק במידה שנוח לכם)',
-  aPriv:'המידע יועבר למחנכת בלבד. ככל שיעלה צורך בסיוע הוועד, הוא יוצג באופן אנונימי, ללא פרטים מזהים, ובתיאום עם המשפחה.',
+  aPriv:'הפרטים שתמסרו נגישים למחנכת הכיתה בלבד, ואינם מועברים לאף גורם אחר. ככל שיעלה צורך בסיוע הוועד, הוא יוצג באופן אנונימי, ללא פרטים מזהים, ובתיאום מראש עם המשפחה.',
+  privTop:'הפרטים שתמלאו כאן נגישים למחנכת הכיתה בלבד ולא יעברו לידיים אחרות. אפשר למלא רק את אחד החלקים.',
+  detTitle:'הפרטים שלי',
   bTitle:'חלק ב׳ | הורים יוזמים ותורמים',
   bIntro:'לכל אחד ואחת מאיתנו יש משהו לתרום. נשמח לרתום את הכישורים, הידע והרעיונות שלכם לטובת הילדים והקהילה הכיתתית.',
   bQ:'באילו דרכים תרצו לקחת חלק?',
@@ -1717,8 +1719,16 @@ async function communityForm(folderId, onBack){
     </div>
     ${modeBanner()}
     <div class="card"><p style="margin:0">${esc(c.intro)}</p>
-      <div class="kpriv" style="margin-top:14px"><b>הטופס אנונימי לחלוטין</b>
-        לא נשאלים כאן שם, טלפון או כל פרט מזהה אחר, והמערכת אינה שומרת אותם. אפשר למלא רק את אחד החלקים.</div>
+      <div class="kpriv" style="margin-top:14px"><b>הפרטים נשמרים אצל המחנכת בלבד</b>${esc(c.privTop)}</div>
+    </div>
+
+    <div class="card">
+      <div class="kpart"><h2><span class="step">1</span>${esc(c.detTitle)}</h2></div>
+      <div class="grid">
+        <div><label>שם ההורה</label><input id="kp_parent" placeholder="שם פרטי ושם משפחה"></div>
+        <div><label>טלפון <span class="note">— כדי שנוכל לחזור אליכם</span></label><input id="kp_phone" inputmode="tel" placeholder="050-0000000"></div>
+        <div class="full"><label>שם התלמיד/ה <span class="note">(לא חובה)</span></label><input id="kp_child" placeholder="שם פרטי ושם משפחה"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -1754,20 +1764,22 @@ async function communityForm(folderId, onBack){
 
   $('#ksend').onclick = async () => {
     const ta = norm($('#ka').value), tb = norm($('#kb').value), msg = $('#msg');
+    const parent = norm($('#kp_parent').value), phone = norm($('#kp_phone').value), child = norm($('#kp_child').value);
+    if(!parent) return msg.innerHTML='<div class="err">נא למלא את שם ההורה.</div>';
     if(!A.size && !B.size && !ta && !tb)
       return msg.innerHTML='<div class="err">נא למלא לפחות אחד מהחלקים לפני השליחה.</div>';
     msg.innerHTML='<div class="note">שולח…</div>'; $('#ksend').disabled = true;
     try{
-      await Store.set('cresp/'+rid('k_'), {folderId,
+      await Store.set('cresp/'+rid('k_'), {folderId, parent, phone, child,
         aOpts:[...A].sort().map(i=>c.aOpts[i]), aText:ta,
         bOpts:[...B].sort().map(i=>c.bOpts[i]), bText:tb,
-        day: today10()});
+        day: today10(), at: nowISO()});
     }catch(e){ $('#ksend').disabled=false; return msg.innerHTML='<div class="err">השליחה נכשלה. נסו שוב מאוחר יותר.</div>'; }
     app.querySelector('.sticky-submit').remove();
     window.scrollTo({top:0, behavior:'smooth'});
     const done = document.createElement('div'); done.className='card done';
     done.innerHTML = `<div class="done-ic">💛</div><h2>${esc(c.thanks)}</h2>
-      <p class="sub">הטופס נשלח בהצלחה, ללא פרטים מזהים.</p>
+      <p class="sub">הטופס נשלח למחנכת הכיתה. הפרטים שמסרתם נגישים לה בלבד.</p>
       <p class="note">${esc(c.sign)}</p>`;
     app.querySelector('.hero').after(done);
   };
@@ -1795,7 +1807,7 @@ async function communityTeacher(folderId, asAdmin){
     <div class="card">
       <h2>${esc(c.title)}</h2>
       <p class="sub">${esc(c.sub)}</p>
-      <div class="kanon"><b>הטופס אנונימי.</b> לא נאספים שמות או פרטי קשר, ולכן לא ניתן לדעת מי מילא. מוצג רק תאריך המילוי, ללא שעה.</div>
+      <div class="kanon"><b>הפרטים חסויים.</b> ההורים הובטחו שהפרטים נגישים למחנכת בלבד ולא יעברו לגורם אחר. במסך הניהול הבית־ספרי הפניות מוצגות ללא שמות ופרטי קשר.</div>
       <div class="linkbox">
         <code>${esc(link)}</code>
         <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
@@ -1829,14 +1841,15 @@ async function communityTeacher(folderId, asAdmin){
   };
 }
 
-function kRespHtml(r, i, c, cls){
+function kRespHtml(r, i, c, cls, hideId){
   const chips = arr => (arr||[]).map(x=>`<span class="cchip s" style="--c:var(--accent)">${esc(x)}</span>`).join(' ');
   const hasA = (r.aOpts&&r.aOpts.length)||r.aText, hasB = (r.bOpts&&r.bOpts.length)||r.bText;
   return `<div class="kresp">
-    <div class="kh"><span class="kn">פנייה ${i+1}</span>
+    <div class="kh"><span class="kn">${hideId?('פנייה '+(i+1)):esc(r.parent||('פנייה '+(i+1)))}</span>
       ${cls?`<span class="tag no">${esc(cls)}</span>`:''}
       <span class="note">${esc(r.day||'')}</span>
       ${hasA?'<span class="tag rk1">צורך</span>':''}${hasB?'<span class="tag ok">יוזמה</span>':''}</div>
+    ${(!hideId && (r.phone||r.child))?`<div class="note" style="margin:-4px 0 8px">${r.child?'התלמיד/ה: '+esc(r.child):''}${r.child&&r.phone?' · ':''}${r.phone?'טלפון: '+esc(r.phone):''}</div>`:''}
     ${hasA?`<div class="kq">${esc(c.aQ)}</div><div>${chips(r.aOpts)||'<span class="note">—</span>'}</div>
       ${r.aText?`<div class="kq">פירוט</div><div class="kt">${esc(r.aText)}</div>`:''}`:''}
     ${hasB?`<div class="kq">${esc(c.bQ)}</div><div>${chips(r.bOpts)||'<span class="note">—</span>'}</div>
@@ -1844,19 +1857,22 @@ function kRespHtml(r, i, c, cls){
   </div>`;
 }
 function kCsv(resp, c){
-  const rows = [['#','כיתה','תאריך','תחומי סיוע נדרשים','פירוט הצורך','דרכים לתרום','פירוט היוזמה']];
-  resp.forEach((r,i)=>rows.push([i+1, r.cls||'', r.day||'', (r.aOpts||[]).join(' | '), r.aText||'', (r.bOpts||[]).join(' | '), r.bText||'']));
+  const rows = [['#','שם ההורה','טלפון','שם התלמיד/ה','תאריך','תחומי סיוע נדרשים','פירוט הצורך','דרכים לתרום','פירוט היוזמה']];
+  resp.forEach((r,i)=>rows.push([i+1, r.parent||'', r.phone||'', r.child||'', r.day||'', (r.aOpts||[]).join(' | '), r.aText||'', (r.bOpts||[]).join(' | '), r.bText||'']));
   return csvBlob(rows);
 }
-async function kPdf(groups, c){
+async function kPdf(groups, c, hideId){
   const cfg = await Store.get('app/config') || {};
   const el = document.getElementById('cprint');
   const all = groups.reduce((n,g)=>n+g.resp.length,0);
   const block = (r,i,cls) => {
     const hasA=(r.aOpts&&r.aOpts.length)||r.aText, hasB=(r.bOpts&&r.bOpts.length)||r.bText;
+    const who = hideId ? ('פנייה '+(i+1)) : esc(r.parent||('פנייה '+(i+1)));
+    const contact = (!hideId && (r.phone||r.child)) ? [r.child?'התלמיד/ה: '+esc(r.child):'', r.phone?'טלפון: '+esc(r.phone):''].filter(Boolean).join(' · ') : '';
     return `<div class="pb" style="border-color:#1f5f4e; break-inside:avoid">
-      <div class="pbh" style="background:#1f5f4e">פנייה ${i+1}${cls?' · '+esc(cls):''} <span>${esc(r.day||'')}</span></div>
+      <div class="pbh" style="background:#1f5f4e">${who}${cls?' · '+esc(cls):''} <span>${esc(r.day||'')}</span></div>
       <div style="padding:8px 10px; font-size:13px; line-height:1.7">
+        ${contact?`<div style="margin-bottom:5px">${contact}</div>`:''}
         ${hasA?`<div><b>${esc(c.aQ)}</b><br>${esc((r.aOpts||[]).join(' · ')||'—')}</div>
           ${r.aText?`<div style="margin-top:4px"><b>פירוט:</b> ${esc(r.aText)}</div>`:''}`:''}
         ${hasA&&hasB?'<hr style="border:0; border-top:1px dashed #bbb; margin:8px 0">':''}
@@ -1867,7 +1883,7 @@ async function kPdf(groups, c){
   el.innerHTML = `
     <div class="ph"><div><div class="po">${esc(cfg.org||'')}</div><h1>${esc(c.title)}</h1>
       <div class="pm">${esc(c.sub)} · ${all} פניות · הופק ${esc(new Date().toLocaleDateString('he-IL'))}</div>
-      <div class="pm"><b>מסמך אנונימי</b> — אינו כולל שמות או פרטי קשר.</div></div></div>
+      <div class="pm">${hideId?'<b>מסמך ללא פרטים מזהים</b> — אינו כולל שמות או פרטי קשר.':'<b>מסמך חסוי</b> — מכיל פרטים אישיים. מיועד למחנכת הכיתה בלבד.'}</div></div></div>
     ${groups.map(g=>`${groups.length>1?`<h2>${esc(g.name||'ללא כיתה')} — ${g.resp.length} פניות</h2>`:''}
       <div class="pg">${g.resp.map((r,i)=>block(r,i,groups.length>1?g.name:'')).join('')}</div>`).join('')}`;
   await new Promise(r=>setTimeout(r,80));
@@ -1917,9 +1933,10 @@ async function adminCommunity(){
     </div>
     <div class="card">
       <h2>כל הפניות · ${resp.length}</h2>
-      <p class="sub">תצוגה בית־ספרית, ללא פרטים מזהים.</p>
+      <p class="sub">תצוגה בית־ספרית, ללא שמות ופרטי קשר — כפי שהובטח להורים בטופס.</p>
+      <div class="kanon"><b>הפרטים המזהים גלויים למחנכת הכיתה בלבד.</b> כדי לפנות למשפחה מסוימת יש לעשות זאת דרך המחנכת.</div>
       ${resp.length? resp.slice().sort((a,b)=>(a.day||'').localeCompare(b.day||''))
-          .map((r,i)=>kRespHtml(r,i,c,fname(r.folderId))).join('')
+          .map((r,i)=>kRespHtml(r,i,c,fname(r.folderId),true)).join('')
         : '<div class="empty">טרם התקבלו פניות.</div>'}
       <div class="row mt">
         <button class="btn" id="allpdf" ${resp.length?'':'disabled'}>הורדת PDF מרוכז</button>
@@ -1933,6 +1950,8 @@ async function adminCommunity(){
         <div><label>כותרת</label><input id="k_title" value="${esc(c.title)}"></div>
         <div><label>כותרת משנה</label><input id="k_sub" value="${esc(c.sub)}"></div>
         <div class="full"><label>פתיח</label><textarea id="k_intro">${esc(c.intro)}</textarea></div>
+        <div class="full"><label>הודעת הפרטיות בראש הטופס</label><textarea id="k_privTop">${esc(c.privTop)}</textarea></div>
+        <div class="full"><label>כותרת מקטע הפרטים האישיים</label><input id="k_detTitle" value="${esc(c.detTitle)}"></div>
       </div>
       <h3>חלק א׳ — צרכים ותמיכה</h3>
       <div class="grid">
@@ -1975,12 +1994,13 @@ async function adminCommunity(){
   $('#allcsv').onclick = async () => {
     const rows = [['#','כיתה','תאריך','תחומי סיוע נדרשים','פירוט הצורך','דרכים לתרום','פירוט היוזמה']];
     resp.forEach((r,i)=>rows.push([i+1, fname(r.folderId), r.day||'', (r.aOpts||[]).join(' | '), r.aText||'', (r.bOpts||[]).join(' | '), r.bText||'']));
+    // ללא שמות ופרטי קשר — התחייבות הטופס להורים
     await saveFile('קהילה_בית_הספר.csv', csvBlob(rows));
   };
   $('#allpdf').onclick = async () => {
     $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
     const groups = folders.map(f=>({name:f.name, resp:resp.filter(r=>r.folderId===f._id)})).filter(g=>g.resp.length);
-    try{ await saveFile('קהילה_בית_הספר.pdf', await kPdf(groups, c)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    try{ await saveFile('קהילה_בית_הספר.pdf', await kPdf(groups, c, true)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
     catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
   };
   $('#ksave').onclick = async () => {
@@ -1988,7 +2008,7 @@ async function adminCommunity(){
     const aOpts = t('aOpts').split('\n').map(norm).filter(Boolean);
     const bOpts = t('bOpts').split('\n').map(norm).filter(Boolean);
     if(!aOpts.length || !bOpts.length) return $('#msg').innerHTML='<div class="err">בכל חלק צריכה להיות לפחות אפשרות אחת.</div>';
-    await saveCfg({title:g('title'), sub:g('sub'), intro:t('intro'),
+    await saveCfg({title:g('title'), sub:g('sub'), intro:t('intro'), privTop:t('privTop'), detTitle:g('detTitle'),
       aTitle:g('aTitle'), aIntro:t('aIntro'), aQ:g('aQ'), aOpts, aFree:g('aFree'), aPriv:t('aPriv'),
       bTitle:g('bTitle'), bIntro:t('bIntro'), bQ:g('bQ'), bOpts, bFree:g('bFree'),
       thanks:g('thanks'), sign:g('sign')});
