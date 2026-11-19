@@ -53,7 +53,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--soft); border-co
 .row{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
 .row.mt{margin-top:16px}
 table{width:100%; border-collapse:collapse; font-size:14.5px}
-th,td{text-align:right; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle}
+th,td{text-align:start; padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle}
 th{font-size:12.5px; color:var(--muted); font-weight:600}
 .tag{display:inline-block; padding:2px 9px; border-radius:999px; font-size:12.5px; font-weight:600}
 .tag.ok{background:var(--soft); color:var(--accent); margin:0; padding:2px 9px; font-size:12.5px; border:0}
@@ -145,6 +145,16 @@ canvas#sig{width:100%; height:165px; display:block; touch-action:none; border-ra
 .kanon{background:var(--warnbg); border:1px solid var(--line); color:var(--warn); border-radius:10px; padding:10px 13px; font-size:13.5px; margin-bottom:14px}
 .kfold{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
 .kfold .main{margin-inline-end:auto}
+.klang{display:inline-flex; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:4px; margin-inline-start:auto}
+.klang button{border:0; background:transparent; font:inherit; font-size:14px; font-weight:600; color:var(--muted);
+              padding:6px 14px; border-radius:7px; cursor:pointer}
+.klang button.on{background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.10)}
+#kwrap[dir="ltr"] .kpart{border-inline-start:4px solid var(--accent)}
+#kwrap[dir="ltr"] .step{margin-inline-end:8px}
+.ktr{background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:14px 16px; margin-top:10px}
+.ktr summary{cursor:pointer; font-weight:600; font-size:15.5px}
+.ktr[open] summary{margin-bottom:12px}
+.ktr .en{direction:ltr; text-align:left}
 .donelist{display:grid; gap:8px; justify-items:center}
 .cchip{display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 8px; border-radius:999px; font-size:13.5px; font-weight:600;
   background:color-mix(in srgb,var(--c) 15%,var(--card)); border:1px solid color-mix(in srgb,var(--c) 45%,var(--line)); white-space:nowrap}
@@ -1739,94 +1749,168 @@ async function getComm(){
 }
 const today10 = () => new Date().toISOString().slice(0,10);
 
-/* ---------------- הטופס להורים (#k=folderId) — אנונימי לחלוטין ---------------- */
+/* ---------------- נוסח אנגלי ומחרוזות ממשק ---------------- */
+const K_EN_DEFAULT = {
+  title:'For Our Children 💛',
+  sub:'Needs, initiatives and mutual support in our class community',
+  intro:'We believe a strong community is one where people see each other, help when help is needed, and everyone contributes in their own way. We would be glad to hear about needs we can help with, and about ideas and initiatives you would like to lead.',
+  privTop:'The details you fill in here are accessible to the class teacher only and will not be passed on to anyone else. You may fill in just one of the sections.',
+  detTitle:'My details',
+  aTitle:'Part A | Seeing everyone – needs and support',
+  aIntro:'It matters to us that every child feels they belong and that someone sees them. If there is a personal, family, social or other need that the class community could help with, we would be glad to hear about it.',
+  aQ:'In which area is help needed?',
+  aOpts:['Equipment or material needs','Support while a parent is on reserve duty','Language or learning support','Social or family support','Other'],
+  aFree:'If you feel comfortable, please describe the need briefly',
+  aPriv:'The details you provide are accessible to the class teacher only and are not passed on to anyone else. If a need for committee assistance arises, it will be presented anonymously, without identifying details, and in coordination with the family in advance.',
+  bTitle:'Part B | Parents who initiate and contribute',
+  bIntro:'Every one of us has something to contribute. We would love to bring your skills, knowledge and ideas to the children and to the class community.',
+  bQ:'In what ways would you like to take part?',
+  bOpts:['Running an activity or workshop for the children','A talk or sharing from your field of knowledge or work','Helping organise events and activities','Helping families or children in the class community','Other'],
+  bFree:'Tell us a little about the idea, or how you would like to contribute',
+  thanks:'Thank you for being part of a community that cares! 💛',
+  sign:'The class committee'
+};
+const K_UI = {
+  he:{ pick:'ניתן לבחור יותר מאפשרות אחת', privBox:'הפרטים נשמרים אצל המחנכת בלבד', privA:'הפרטיות שלכם חשובה לנו',
+       parent:'שם ההורה', phone:'טלפון', phoneHint:'— כדי שנוכל לחזור אליכם', child:'שם התלמיד/ה', optional:'(לא חובה)',
+       send:'שליחת הטופס', sending:'שולח…', noName:'נא למלא את שם ההורה.',
+       noPart:'נא למלא לפחות אחד מהחלקים לפני השליחה.', failed:'השליחה נכשלה. נסו שוב מאוחר יותר.',
+       sentSub:'הטופס נשלח למחנכת הכיתה. הפרטים שמסרתם נגישים לה בלבד.',
+       foot:'הטופס מיועד לאפשר מילוי של כל אחד מהחלקים בנפרד, ללא חובה למלא את שניהם.',
+       langLabel:'שפה', back:'חזרה', closed:'הטופס אינו פעיל',
+       closedSub:'ייתכן שהקישור אינו תקין או שהטופס נסגר. אפשר לפנות למחנכת.' },
+  en:{ pick:'You may choose more than one option', privBox:'Your details are kept with the class teacher only', privA:'Your privacy matters to us',
+       parent:'Parent’s name', phone:'Phone', phoneHint:'— so we can get back to you', child:'Student’s name', optional:'(optional)',
+       send:'Send form', sending:'Sending…', noName:'Please fill in the parent’s name.',
+       noPart:'Please fill in at least one of the sections before sending.', failed:'Sending failed. Please try again later.',
+       sentSub:'The form has been sent to the class teacher. Your details are accessible to them only.',
+       foot:'Each section can be filled in on its own — there is no need to complete both.',
+       langLabel:'Language', back:'Back', closed:'This form is not active',
+       closedSub:'The link may be invalid or the form may have closed. Please contact the class teacher.' }
+};
+/* הנוסח בשפה הנבחרת, עם נפילה לעברית היכן שחסר תרגום */
+function kText(c, L){
+  if(L!=='en') return c;
+  const en = Object.assign({}, K_EN_DEFAULT, c.en||{});
+  const out = Object.assign({}, c);
+  Object.keys(K_EN_DEFAULT).forEach(k=>{ if(en[k]!==undefined && en[k]!=='' ) out[k]=en[k]; });
+  out.aOpts = (c.aOpts||[]).map((o,i)=>(en.aOpts&&en.aOpts[i])||o);
+  out.bOpts = (c.bOpts||[]).map((o,i)=>(en.bOpts&&en.bOpts[i])||o);
+  return out;
+}
+
+/* ---------------- הטופס להורים (#k=קוד) ---------------- */
 async function communityForm(folderId, onBack){
   app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
   const [folder0, c, cfg] = await Promise.all([folderByRef(folderId), getComm(), Store.get('app/config')]);
   const folder = folder0; if(folder) folderId = folder._id;
-  const back = onBack ? '<button class="btn ghost sm" id="back">חזרה</button>' : '';
+  let L = 'he';
+  try{ const sv = localStorage.getItem('slips_lang'); if(sv==='en'||sv==='he') L = sv; }catch(e){}
   if(!folder || !(c.folders||[]).includes(folderId)){
-    app.innerHTML = `<div class="topbar">${back}</div><div class="card"><h2>הטופס אינו פעיל</h2>
-      <p class="sub">ייתכן שהקישור אינו תקין או שהטופס נסגר. אפשר לפנות למחנכת.</p></div>`;
+    const u = K_UI[L];
+    app.innerHTML = `<div class="topbar">${onBack?`<button class="btn ghost sm" id="back">${esc(u.back)}</button>`:''}</div>
+      <div class="card"><h2>${esc(u.closed)}</h2><p class="sub">${esc(u.closedSub)}</p></div>`;
     if(onBack) $('#back').onclick = onBack; return;
   }
   const A = new Set(), B = new Set();
-  const optsHtml = (arr, g) => arr.map((o,i)=>`<div class="kopt" data-g="${g}" data-i="${i}" role="button" tabindex="0">
-      <span class="kbox">✓</span><span>${esc(o)}</span></div>`).join('');
+  const draft = {parent:'', phone:'', child:'', ka:'', kb:''};
 
-  app.innerHTML = `
-    <div class="topbar">${back}</div>
-    <div class="hero">
-      <div class="hero-school">${esc((cfg&&cfg.org)||'')}${folder.name?' · '+esc(folder.name):''}</div>
-      <h1 class="hero-title">${esc(c.title)}</h1>
-      <div class="hero-sub">${esc(c.sub)}</div>
-    </div>
-    ${modeBanner()}
-    <div class="card"><p style="margin:0">${esc(c.intro)}</p>
-      <div class="kpriv" style="margin-top:14px"><b>הפרטים נשמרים אצל המחנכת בלבד</b>${esc(c.privTop)}</div>
-    </div>
-
-    <div class="card">
-      <div class="kpart"><h2><span class="step">1</span>${esc(c.detTitle)}</h2></div>
-      <div class="grid">
-        <div><label>שם ההורה</label><input id="kp_parent" placeholder="שם פרטי ושם משפחה"></div>
-        <div><label>טלפון <span class="note">— כדי שנוכל לחזור אליכם</span></label><input id="kp_phone" inputmode="tel" placeholder="050-0000000"></div>
-        <div class="full"><label>שם התלמיד/ה <span class="note">(לא חובה)</span></label><input id="kp_child" placeholder="שם פרטי ושם משפחה"></div>
+  function render(){
+    const t = kText(c, L), u = K_UI[L], rtl = L!=='en';
+    const optsHtml = (arr,g,set) => arr.map((o,i)=>`<div class="kopt${set.has(i)?' on':''}" data-g="${g}" data-i="${i}" role="button" tabindex="0">
+        <span class="kbox">✓</span><span>${esc(o)}</span></div>`).join('');
+    app.innerHTML = `<div id="kwrap" dir="${rtl?'rtl':'ltr'}">
+      <div class="topbar">
+        ${onBack?`<button class="btn ghost sm" id="back">${esc(u.back)}</button>`:''}
+        <span class="klang" role="group" aria-label="${esc(u.langLabel)}">
+          <button type="button" data-l="he" class="${L==='he'?'on':''}">עברית</button>
+          <button type="button" data-l="en" class="${L==='en'?'on':''}">English</button>
+        </span>
       </div>
-    </div>
+      <div class="hero">
+        <div class="hero-school">${esc((cfg&&cfg.org)||'')}${folder.name?' · '+esc(folder.name):''}</div>
+        <h1 class="hero-title">${esc(t.title)}</h1>
+        <div class="hero-sub">${esc(t.sub)}</div>
+      </div>
+      ${modeBanner()}
+      <div class="card"><p style="margin:0">${esc(t.intro)}</p>
+        <div class="kpriv" style="margin-top:14px"><b>${esc(u.privBox)}</b>${esc(t.privTop)}</div>
+      </div>
 
-    <div class="card">
-      <div class="kpart"><h2>${esc(c.aTitle)}</h2><p class="ksub">${esc(c.aIntro)}</p></div>
-      <h3 style="margin:0 0 2px">${esc(c.aQ)}</h3>
-      <p class="note" style="margin:0">ניתן לבחור יותר מאפשרות אחת</p>
-      <div class="kgrid">${optsHtml(c.aOpts,'a')}</div>
-      <div style="margin-top:14px"><label>${esc(c.aFree)}</label><textarea id="ka" style="min-height:92px"></textarea></div>
-      <div class="kpriv"><b>הפרטיות שלכם חשובה לנו</b>${esc(c.aPriv)}</div>
-    </div>
+      <div class="card">
+        <div class="kpart"><h2><span class="step">1</span>${esc(t.detTitle)}</h2></div>
+        <div class="grid">
+          <div><label>${esc(u.parent)}</label><input id="kp_parent" value="${esc(draft.parent)}"></div>
+          <div><label>${esc(u.phone)} <span class="note">${esc(u.phoneHint)}</span></label>
+            <input id="kp_phone" inputmode="tel" value="${esc(draft.phone)}"></div>
+          <div class="full"><label>${esc(u.child)} <span class="note">${esc(u.optional)}</span></label>
+            <input id="kp_child" value="${esc(draft.child)}"></div>
+        </div>
+      </div>
 
-    <div class="card">
-      <div class="kpart"><h2>${esc(c.bTitle)}</h2><p class="ksub">${esc(c.bIntro)}</p></div>
-      <h3 style="margin:0 0 2px">${esc(c.bQ)}</h3>
-      <p class="note" style="margin:0">ניתן לבחור יותר מאפשרות אחת</p>
-      <div class="kgrid">${optsHtml(c.bOpts,'b')}</div>
-      <div style="margin-top:14px"><label>${esc(c.bFree)}</label><textarea id="kb" style="min-height:92px"></textarea></div>
-    </div>
+      <div class="card">
+        <div class="kpart"><h2>${esc(t.aTitle)}</h2><p class="ksub">${esc(t.aIntro)}</p></div>
+        <h3 style="margin:0 0 2px">${esc(t.aQ)}</h3>
+        <p class="note" style="margin:0">${esc(u.pick)}</p>
+        <div class="kgrid">${optsHtml(t.aOpts,'a',A)}</div>
+        <div style="margin-top:14px"><label>${esc(t.aFree)}</label><textarea id="ka" style="min-height:92px">${esc(draft.ka)}</textarea></div>
+        <div class="kpriv"><b>${esc(u.privA)}</b>${esc(t.aPriv)}</div>
+      </div>
 
-    <div class="card sticky-submit">
-      <div class="row"><button class="btn" id="ksend" style="flex:1">שליחת הטופס</button></div>
-      <p class="note" style="margin:10px 0 0">הטופס מיועד לאפשר מילוי של כל אחד מהחלקים בנפרד, ללא חובה למלא את שניהם.</p>
-      <div id="msg"></div>
-    </div>`;
-  if(onBack) $('#back').onclick = onBack;
+      <div class="card">
+        <div class="kpart"><h2>${esc(t.bTitle)}</h2><p class="ksub">${esc(t.bIntro)}</p></div>
+        <h3 style="margin:0 0 2px">${esc(t.bQ)}</h3>
+        <p class="note" style="margin:0">${esc(u.pick)}</p>
+        <div class="kgrid">${optsHtml(t.bOpts,'b',B)}</div>
+        <div style="margin-top:14px"><label>${esc(t.bFree)}</label><textarea id="kb" style="min-height:92px">${esc(draft.kb)}</textarea></div>
+      </div>
 
-  app.querySelectorAll('.kopt').forEach(el=>{
-    const act = () => { const set = el.dataset.g==='a'?A:B, i=+el.dataset.i;
-      if(set.has(i)) set.delete(i); else set.add(i);
-      el.classList.toggle('on', set.has(i)); $('#msg').innerHTML=''; };
-    el.onclick = act; el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } };
-  });
+      <div class="card sticky-submit">
+        <div class="row"><button class="btn" id="ksend" style="flex:1">${esc(u.send)}</button></div>
+        <p class="note" style="margin:10px 0 0">${esc(u.foot)}</p>
+        <div id="msg"></div>
+      </div></div>`;
+    if(onBack) $('#back').onclick = onBack;
 
-  $('#ksend').onclick = async () => {
-    const ta = norm($('#ka').value), tb = norm($('#kb').value), msg = $('#msg');
-    const parent = norm($('#kp_parent').value), phone = norm($('#kp_phone').value), child = norm($('#kp_child').value);
-    if(!parent) return msg.innerHTML='<div class="err">נא למלא את שם ההורה.</div>';
-    if(!A.size && !B.size && !ta && !tb)
-      return msg.innerHTML='<div class="err">נא למלא לפחות אחד מהחלקים לפני השליחה.</div>';
-    msg.innerHTML='<div class="note">שולח…</div>'; $('#ksend').disabled = true;
-    try{
-      await Store.set('cresp/'+rid('k_'), {folderId, parent, phone, child,
-        aOpts:[...A].sort().map(i=>c.aOpts[i]), aText:ta,
-        bOpts:[...B].sort().map(i=>c.bOpts[i]), bText:tb,
-        day: today10(), at: nowISO()});
-    }catch(e){ $('#ksend').disabled=false; return msg.innerHTML='<div class="err">השליחה נכשלה. נסו שוב מאוחר יותר.</div>'; }
-    app.querySelector('.sticky-submit').remove();
-    window.scrollTo({top:0, behavior:'smooth'});
-    const done = document.createElement('div'); done.className='card done';
-    done.innerHTML = `<div class="done-ic">💛</div><h2>${esc(c.thanks)}</h2>
-      <p class="sub">הטופס נשלח למחנכת הכיתה. הפרטים שמסרתם נגישים לה בלבד.</p>
-      <p class="note">${esc(c.sign)}</p>`;
-    app.querySelector('.hero').after(done);
-  };
+    const keep = () => { draft.parent=$('#kp_parent').value; draft.phone=$('#kp_phone').value;
+      draft.child=$('#kp_child').value; draft.ka=$('#ka').value; draft.kb=$('#kb').value; };
+
+    app.querySelectorAll('.klang button').forEach(b=>b.onclick=()=>{
+      if(b.dataset.l===L) return;
+      keep(); L = b.dataset.l;
+      try{ localStorage.setItem('slips_lang', L); }catch(e){}
+      render(); window.scrollTo({top:0});
+    });
+    app.querySelectorAll('.kopt').forEach(el=>{
+      const act = () => { const set = el.dataset.g==='a'?A:B, i=+el.dataset.i;
+        if(set.has(i)) set.delete(i); else set.add(i);
+        el.classList.toggle('on', set.has(i)); $('#msg').innerHTML=''; };
+      el.onclick = act; el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } };
+    });
+
+    $('#ksend').onclick = async () => {
+      const msg = $('#msg');
+      const ta = norm($('#ka').value), tb = norm($('#kb').value);
+      const parent = norm($('#kp_parent').value), phone = norm($('#kp_phone').value), child = norm($('#kp_child').value);
+      if(!parent) return msg.innerHTML=`<div class="err">${esc(u.noName)}</div>`;
+      if(!A.size && !B.size && !ta && !tb) return msg.innerHTML=`<div class="err">${esc(u.noPart)}</div>`;
+      msg.innerHTML=`<div class="note">${esc(u.sending)}</div>`; $('#ksend').disabled = true;
+      try{
+        /* התשובות נשמרות תמיד בעברית, כדי שרשימת המורה תהיה אחידה */
+        await Store.set('cresp/'+rid('k_'), {folderId, parent, phone, child,
+          aOpts:[...A].sort().map(i=>c.aOpts[i]), aText:ta,
+          bOpts:[...B].sort().map(i=>c.bOpts[i]), bText:tb,
+          lang:L, day: today10(), at: nowISO()});
+      }catch(e){ $('#ksend').disabled=false; return msg.innerHTML=`<div class="err">${esc(u.failed)}</div>`; }
+      app.querySelector('.sticky-submit').remove();
+      window.scrollTo({top:0, behavior:'smooth'});
+      const done = document.createElement('div'); done.className='card done';
+      done.innerHTML = `<div class="done-ic">💛</div><h2>${esc(t.thanks)}</h2>
+        <p class="sub">${esc(u.sentSub)}</p><p class="note">${esc(t.sign)}</p>`;
+      app.querySelector('.hero').after(done);
+    };
+  }
+  render();
 }
 
 /* ---------------- לשונית המורה ---------------- */
@@ -1892,12 +1976,13 @@ function kRespHtml(r, i, c, cls, hideId){
     <div class="kh"><span class="kn">${hideId?('פנייה '+(i+1)):esc(r.parent||('פנייה '+(i+1)))}</span>
       ${cls?`<span class="tag no">${esc(cls)}</span>`:''}
       <span class="note">${esc(r.day||'')}</span>
-      ${hasA?'<span class="tag rk1">צורך</span>':''}${hasB?'<span class="tag ok">יוזמה</span>':''}</div>
+      ${hasA?'<span class="tag rk1">צורך</span>':''}${hasB?'<span class="tag ok">יוזמה</span>':''}
+      ${r.lang==='en'?'<span class="tag no">מולא באנגלית</span>':''}</div>
     ${(!hideId && (r.phone||r.child))?`<div class="note" style="margin:-4px 0 8px">${r.child?'התלמיד/ה: '+esc(r.child):''}${r.child&&r.phone?' · ':''}${r.phone?'טלפון: '+esc(r.phone):''}</div>`:''}
     ${hasA?`<div class="kq">${esc(c.aQ)}</div><div>${chips(r.aOpts)||'<span class="note">—</span>'}</div>
-      ${r.aText?`<div class="kq">פירוט</div><div class="kt">${esc(r.aText)}</div>`:''}`:''}
+      ${r.aText?`<div class="kq">פירוט</div><div class="kt" dir="auto">${esc(r.aText)}</div>`:''}`:''}
     ${hasB?`<div class="kq">${esc(c.bQ)}</div><div>${chips(r.bOpts)||'<span class="note">—</span>'}</div>
-      ${r.bText?`<div class="kq">פירוט</div><div class="kt">${esc(r.bText)}</div>`:''}`:''}
+      ${r.bText?`<div class="kq">פירוט</div><div class="kt" dir="auto">${esc(r.bText)}</div>`:''}`:''}
   </div>`;
 }
 function kCsv(resp, c){
@@ -1918,10 +2003,10 @@ async function kPdf(groups, c, hideId){
       <div style="padding:8px 10px; font-size:13px; line-height:1.7">
         ${contact?`<div style="margin-bottom:5px">${contact}</div>`:''}
         ${hasA?`<div><b>${esc(c.aQ)}</b><br>${esc((r.aOpts||[]).join(' · ')||'—')}</div>
-          ${r.aText?`<div style="margin-top:4px"><b>פירוט:</b> ${esc(r.aText)}</div>`:''}`:''}
+          ${r.aText?`<div style="margin-top:4px" dir="auto"><b>פירוט:</b> ${esc(r.aText)}</div>`:''}`:''}
         ${hasA&&hasB?'<hr style="border:0; border-top:1px dashed #bbb; margin:8px 0">':''}
         ${hasB?`<div><b>${esc(c.bQ)}</b><br>${esc((r.bOpts||[]).join(' · ')||'—')}</div>
-          ${r.bText?`<div style="margin-top:4px"><b>פירוט:</b> ${esc(r.bText)}</div>`:''}`:''}
+          ${r.bText?`<div style="margin-top:4px" dir="auto"><b>פירוט:</b> ${esc(r.bText)}</div>`:''}`:''}
       </div></div>`;
   };
   el.innerHTML = `
@@ -1948,6 +2033,7 @@ async function kPdf(groups, c, hideId){
 async function adminCommunity(){
   app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
   const c = await getComm();
+  const en = Object.assign({}, K_EN_DEFAULT, c.en||{});
   const [folders, resp] = await Promise.all([Store.list('folders'), Store.list('cresp')]);
   folders.sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'—';
@@ -2019,6 +2105,33 @@ async function adminCommunity(){
         <div><label>משפט התודה</label><input id="k_thanks" value="${esc(c.thanks)}"></div>
         <div><label>חתימה</label><input id="k_sign" value="${esc(c.sign)}"></div>
       </div>
+      <details class="ktr">
+        <summary>נוסח באנגלית — English version</summary>
+        <p class="note" style="margin:0 0 10px">ההורים בוחרים שפה בראש הטופס. שדה שיישאר ריק יוצג בעברית.
+          רשימות האפשרויות חייבות להיות באותו סדר ובאותו מספר שורות כמו בעברית, כי התשובות נשמרות תמיד בעברית.</p>
+        <div class="grid en">
+          <div><label>Title</label><input id="e_title" value="${esc(en.title)}"></div>
+          <div><label>Subtitle</label><input id="e_sub" value="${esc(en.sub)}"></div>
+          <div class="full"><label>Intro</label><textarea id="e_intro">${esc(en.intro)}</textarea></div>
+          <div class="full"><label>Privacy notice at the top</label><textarea id="e_privTop">${esc(en.privTop)}</textarea></div>
+          <div class="full"><label>Details section title</label><input id="e_detTitle" value="${esc(en.detTitle)}"></div>
+          <div class="full"><label>Part A — title</label><input id="e_aTitle" value="${esc(en.aTitle)}"></div>
+          <div class="full"><label>Part A — intro</label><textarea id="e_aIntro">${esc(en.aIntro)}</textarea></div>
+          <div class="full"><label>Part A — question</label><input id="e_aQ" value="${esc(en.aQ)}"></div>
+          <div class="full"><label>Part A — options (one per line, ${(c.aOpts||[]).length} lines)</label>
+            <textarea id="e_aOpts" style="min-height:110px">${esc((en.aOpts||[]).join('\n'))}</textarea></div>
+          <div class="full"><label>Part A — free text label</label><input id="e_aFree" value="${esc(en.aFree)}"></div>
+          <div class="full"><label>Part A — privacy notice</label><textarea id="e_aPriv">${esc(en.aPriv)}</textarea></div>
+          <div class="full"><label>Part B — title</label><input id="e_bTitle" value="${esc(en.bTitle)}"></div>
+          <div class="full"><label>Part B — intro</label><textarea id="e_bIntro">${esc(en.bIntro)}</textarea></div>
+          <div class="full"><label>Part B — question</label><input id="e_bQ" value="${esc(en.bQ)}"></div>
+          <div class="full"><label>Part B — options (one per line, ${(c.bOpts||[]).length} lines)</label>
+            <textarea id="e_bOpts" style="min-height:110px">${esc((en.bOpts||[]).join('\n'))}</textarea></div>
+          <div class="full"><label>Part B — free text label</label><input id="e_bFree" value="${esc(en.bFree)}"></div>
+          <div><label>Thank-you line</label><input id="e_thanks" value="${esc(en.thanks)}"></div>
+          <div><label>Signature</label><input id="e_sign" value="${esc(en.sign)}"></div>
+        </div>
+      </details>
       <div class="row mt"><button class="btn" id="ksave">שמירת הנוסח</button>
         <button class="btn ghost" id="kreset">שחזור נוסח ברירת המחדל</button></div>
       <div id="msg"></div>
@@ -2052,10 +2165,19 @@ async function adminCommunity(){
     const aOpts = t('aOpts').split('\n').map(norm).filter(Boolean);
     const bOpts = t('bOpts').split('\n').map(norm).filter(Boolean);
     if(!aOpts.length || !bOpts.length) return $('#msg').innerHTML='<div class="err">בכל חלק צריכה להיות לפחות אפשרות אחת.</div>';
+    const ev = id => $('#e_'+id).value.trim();
+    const eA = ev('aOpts').split('\n').map(norm).filter(Boolean);
+    const eB = ev('bOpts').split('\n').map(norm).filter(Boolean);
+    if((eA.length && eA.length!==aOpts.length) || (eB.length && eB.length!==bOpts.length))
+      return $('#msg').innerHTML='<div class="err">מספר האפשרויות באנגלית חייב להיות זהה לעברית ('+aOpts.length+' ו-'+bOpts.length+' שורות), או ריק לגמרי.</div>';
+    const enNew = {title:ev('title'), sub:ev('sub'), intro:ev('intro'), privTop:ev('privTop'), detTitle:ev('detTitle'),
+      aTitle:ev('aTitle'), aIntro:ev('aIntro'), aQ:ev('aQ'), aOpts:eA, aFree:ev('aFree'), aPriv:ev('aPriv'),
+      bTitle:ev('bTitle'), bIntro:ev('bIntro'), bQ:ev('bQ'), bOpts:eB, bFree:ev('bFree'),
+      thanks:ev('thanks'), sign:ev('sign')};
     await saveCfg({title:g('title'), sub:g('sub'), intro:t('intro'), privTop:t('privTop'), detTitle:g('detTitle'),
       aTitle:g('aTitle'), aIntro:t('aIntro'), aQ:g('aQ'), aOpts, aFree:g('aFree'), aPriv:t('aPriv'),
       bTitle:g('bTitle'), bIntro:t('bIntro'), bQ:g('bQ'), bOpts, bFree:g('bFree'),
-      thanks:g('thanks'), sign:g('sign')});
+      thanks:g('thanks'), sign:g('sign'), en:enNew});
     $('#msg').innerHTML='<div class="ok">הנוסח נשמר ✓</div>';
   };
   $('#kreset').onclick = async () => {
