@@ -301,6 +301,65 @@ const saveSession = u => { try{ sessionStorage.setItem('slips_me', u); }catch(e)
 const clearSession = () => { try{ sessionStorage.removeItem('slips_me'); }catch(e){} };
 
 /* ============ letter + pdf ============ */
+const DAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const ATYPE_EN = {'סיור':'a field trip','למידת חוץ':'outdoor learning','טיול שנתי':'the annual school trip',
+  'פעילות ספורט':'a sports activity','הצגה / מופע':'a show / performance','אחר':'an activity'};
+const dayNameL = (iso,L) => !iso ? '' : (L==='en' ? DAYS_EN[new Date(iso+'T00:00').getDay()] : DAYS[new Date(iso+'T00:00').getDay()]);
+const dateL = (iso,L) => { if(!iso) return ''; const [y,m,d]=iso.split('-');
+  return L==='en' ? `${+d}/${+m}/${y}` : `${+d}.${+m}.${y.slice(2)}`; };
+const atypeL = (ev,L) => L==='en' ? ((ev.en&&ev.en.atype) || ATYPE_EN[ev.atype] || 'an activity') : ev.atype;
+const placeL = (ev,L) => L==='en' ? ((ev.en&&ev.en.place) || ev.place || '') : (ev.place||'');
+/* מחרוזות הממשק של טופס ההסכמה */
+const SLIP_UI = {
+  he:{ dear:'הורים יקרים,', hours:(a,b)=>`יציאה בשעה ${a}, חזרה משוערת בשעה ${b}.`,
+       title:'אישור הורים', fill:'מילוי ואישור', child:'שם התלמיד/ה', cls:'כיתה', pname:'שם ההורה',
+       phone:'טלפון ליצירת קשר', notes:'הערות / רגישויות בריאותיות (לא חובה)', full:'שם מלא',
+       sigH:'חתימת ההורה', sigHint:'חתמו כאן באצבע או בעכבר', clr:'ניקוי החתימה',
+       agree:(a,p,d,dt)=>`הנני מאשר/ת לבני / בתי לצאת ל${a}${p?' ב'+p:''} ביום ${d} ${dt}.`,
+       submit:'יצירת האישור והגשה למורה', sending:'מגיש…',
+       eNames:'נא למלא את שם התלמיד/ה ואת שם ההורה.', eSig:'נא לחתום במסגרת החתימה.',
+       eAgree:'נא לסמן את תיבת האישור.', eFail:'ההגשה נכשלה. נסו שוב, או פנו למורה.',
+       okTitle:'האישור הוגש למורה ✓', okSub:c=>`התקבל בתיקיית הכיתה בשם ${c}. אפשר גם לשמור עותק אישי.`,
+       save:'שמירת עותק PDF', back:'חזרה', lang:'שפה',
+       bad:'הקישור אינו תקין', badSub:'ייתכן שהאירוע נמחק. פנו למורה לקבלת קישור מעודכן.',
+       closed:'הטופס נסגר למילוי', closedSub:'פנו למורה.',
+       approval:'אישור', iAllow:'הנני מאשר/ת לבני / בתי', clsW:'כיתה', toGo:a=>'לצאת ל'+a,
+       onDay:(d,dt)=>`ביום ${d} ${dt}.`, inPlace:p=>' ב'+p, notesW:'הערות / רגישויות:',
+       phoneW:'טלפון ליצירת קשר:', pnameW:'שם ההורה:', sigW:'חתימת ההורה:',
+       stamp:(t,id)=>`הוגש דיגיטלית · ${t} · מזהה: ${id}`, origHe:'' },
+  en:{ dear:'Dear parents,', hours:(a,b)=>`Departure at ${a}, estimated return at ${b}.`,
+       title:'Parental consent', fill:'Your details and consent', child:'Student’s name', cls:'Class', pname:'Parent’s name',
+       phone:'Contact phone', notes:'Notes / medical sensitivities (optional)', full:'Full name',
+       sigH:'Parent’s signature', sigHint:'Sign here with your finger or mouse', clr:'Clear signature',
+       agree:(a,p,d,dt)=>`I hereby give permission for my son / daughter to take part in ${a}${p?' at '+p:''} on ${d}, ${dt}.`,
+       submit:'Create and submit the consent form', sending:'Submitting…',
+       eNames:'Please fill in the student’s name and the parent’s name.', eSig:'Please sign in the signature box.',
+       eAgree:'Please tick the consent box.', eFail:'Submission failed. Please try again, or contact the teacher.',
+       okTitle:'Your consent has been submitted ✓', okSub:c=>`It was received in the class folder under ${c}. You may also save a copy.`,
+       save:'Save a PDF copy', back:'Back', lang:'Language',
+       bad:'This link is not valid', badSub:'The event may have been deleted. Please ask the teacher for an updated link.',
+       closed:'This form is closed', closedSub:'Please contact the teacher.',
+       approval:'CONSENT', iAllow:'I give permission for my son / daughter', clsW:'Class', toGo:a=>'to take part in '+a,
+       onDay:(d,dt)=>`on ${d}, ${dt}.`, inPlace:p=>' at '+p, notesW:'Notes / sensitivities:',
+       phoneW:'Contact phone:', pnameW:'Parent’s name:', sigW:'Parent’s signature:',
+       stamp:(t,id)=>`Submitted digitally · ${t} · ref: ${id}`,
+       origHe:'The original notice from the school, in Hebrew:' }
+};
+/* הטקסט החופשי שהמורה כתב: תרגום אם הוזן, אחרת המקור העברי */
+function evText(ev, key, L){
+  if(L==='en' && ev.en && norm(ev.en[key])) return ev.en[key];
+  return ev[key]||'';
+}
+function letterBodyL(ev, L){
+  const raw = evText(ev,'body',L);
+  return raw.replace(/{יום}/g, dayNameL(ev.adate,L)).replace(/{תאריך}/g, dateL(ev.adate,L))
+    .replace(/{שעות}/g, (ev.t1&&ev.t2)?`${ev.t1}–${ev.t2}`:'').replace(/{מקום}/g, placeL(ev,L))
+    .replace(/{day}/g, dayNameL(ev.adate,L)).replace(/{date}/g, dateL(ev.adate,L))
+    .replace(/{hours}/g, (ev.t1&&ev.t2)?`${ev.t1}–${ev.t2}`:'').replace(/{place}/g, placeL(ev,L));
+}
+/* האם החלק הכתוב הוצג לבסוף בעברית למרות שנבחרה אנגלית */
+const evFellBack = (ev,L) => L==='en' && !(ev.en && norm(ev.en.body));
+
 function letterBody(ev){
   return (ev.body||'')
     .replace(/{יום}/g, dayName(ev.adate))
@@ -309,26 +368,32 @@ function letterBody(ev){
     .replace(/{מקום}/g, ev.place||'');
 }
 function buildLetter(ev, sub){
-  const hours = (ev.t1&&ev.t2) ? `יציאה בשעה ${ev.t1}, חזרה משוערת בשעה ${ev.t2}.` : '';
-  $('#letter').innerHTML = `
-    <div class="school">${esc(ev.s1)}<br>${esc(ev.s2)}</div>
-    <div class="ldate">${esc(heDate(ev.ldate))}</div>
-    <p>הורים יקרים,</p>
-    <p>${esc(letterBody(ev))}</p>
+  /* המסמך מופק בשפה שבה ההורה מילא וחתם */
+  const L = (sub && sub.lang==='en') ? 'en' : 'he', u = SLIP_UI[L];
+  const hours = (ev.t1&&ev.t2) ? u.hours(ev.t1, ev.t2) : '';
+  const extra = evText(ev,'extra',L), from = evText(ev,'from',L);
+  const el = $('#letter');
+  el.setAttribute('dir', L==='en' ? 'ltr' : 'rtl');
+  el.innerHTML = `
+    <div class="school">${esc(L==='en'?evText(ev,'s1',L):ev.s1)}<br>${esc(L==='en'?evText(ev,'s2',L):ev.s2)}</div>
+    <div class="ldate">${esc(dateL(ev.ldate,L))}</div>
+    <p>${esc(u.dear)}</p>
+    ${evFellBack(ev,L)?`<p style="font-size:13px; color:#555; margin-bottom:2px">${esc(u.origHe)}</p>`:''}
+    <p dir="auto">${esc(letterBodyL(ev,L))}</p>
     ${hours?`<p>${esc(hours)}</p>`:''}
-    ${ev.extra?`<p>${esc(ev.extra)}</p>`:''}
-    <p style="margin-top:20px">${esc(ev.from)}</p>
-    <div class="divider">- - - - - - אישור - - - - - -</div>
-    <p>הנני מאשר/ת לבני / בתי <span class="fld">${esc(sub.child)}</span> כיתה <span class="fld" style="min-width:90px">${esc(sub.cls)}</span></p>
-    <p>לצאת ל${esc(ev.atype)}${ev.place?' ב'+esc(ev.place):''} ביום ${esc(dayName(ev.adate))} ${esc(heDate(ev.adate))}.</p>
-    ${sub.notes?`<p>הערות / רגישויות: ${esc(sub.notes)}</p>`:''}
-    ${sub.phone?`<p>טלפון ליצירת קשר: ${esc(sub.phone)}</p>`:''}
+    ${extra?`<p>${esc(extra)}</p>`:''}
+    <p style="margin-top:20px">${esc(from)}</p>
+    <div class="divider">- - - - - - ${esc(u.approval)} - - - - - -</div>
+    <p>${esc(u.iAllow)} <span class="fld">${esc(sub.child)}</span> ${esc(u.clsW)} <span class="fld" style="min-width:90px">${esc(sub.cls)}</span></p>
+    <p>${esc(u.toGo(atypeL(ev,L)))}${placeL(ev,L)?esc(u.inPlace(placeL(ev,L))):''} ${esc(u.onDay(dayNameL(ev.adate,L), dateL(ev.adate,L)))}</p>
+    ${sub.notes?`<p dir="auto">${esc(u.notesW)} ${esc(sub.notes)}</p>`:''}
+    ${sub.phone?`<p>${esc(u.phoneW)} ${esc(sub.phone)}</p>`:''}
     <div class="sigline">
-      <div>שם ההורה: <span class="fld">${esc(sub.pname)}</span></div>
-      <div style="display:flex; align-items:flex-end; gap:10px">חתימת ההורה:
+      <div>${esc(u.pnameW)} <span class="fld">${esc(sub.pname)}</span></div>
+      <div style="display:flex; align-items:flex-end; gap:10px">${esc(u.sigW)}
         <span class="sigbox">${sub.sig?`<img src="${sub.sig}">`:''}</span></div>
     </div>
-    <div class="stamp">הוגש דיגיטלית · ${esc(fmtTime(sub.submittedAt||nowISO()))} · מזהה: ${esc(sub._id||'—')}</div>`;
+    <div class="stamp">${esc(u.stamp(fmtTime(sub.submittedAt||nowISO()), sub._id||'—'))}</div>`;
 }
 async function makePdfBlob(ev, sub){
   buildLetter(ev, sub);
@@ -726,6 +791,10 @@ async function teacherPage(folderId, asAdmin){
     const ev = {folderId, s1:g('s1'), s2:g('s2'), ldate:g('ldate'), adate:g('adate'), atype:g('atype'),
       place:g('place'), t1:g('t1'), t2:g('t2'), body:$('#body').value.trim(), from:g('from'), extra:g('extra'),
       roster:$('#roster').value.split('\n').map(norm).filter(Boolean), closed:false, createdAt:nowISO(), createdBy:ME.username};
+    const ge = id => { const el=$('#e_'+id); return el ? norm(el.value) : ''; };
+    const enObj = {s1:ge('s1'), s2:ge('s2'), atype:ge('atype'), place:ge('place'),
+      body:(($('#e_body')||{}).value||'').trim(), from:ge('from'), extra:ge('extra')};
+    if(Object.values(enObj).some(v=>v)) ev.en = enObj;
     const id = rid('e_');
     await Store.set('events/'+id, ev);
     eventPage(id, folderId, asAdmin);
@@ -751,6 +820,24 @@ function eventForm(froster){
       <div class="note" style="margin-top:5px">אפשר להשתמש ב־{יום} {תאריך} {שעות} {מקום}.</div></div>
     <div class="full"><label>חתימת השולח</label><input id="from" value="תודה, מחנכות ג'"></div>
     <div class="full"><label>הערות להורים (לא חובה)</label><input id="extra" placeholder="יש להצטייד בכובע, מים ונעליים סגורות"></div>
+  </div>
+  <details class="ktr">
+    <summary>נוסח באנגלית — English version (לא חובה)</summary>
+    <p class="note" style="margin:0 0 10px">ההורים בוחרים שפה בראש הטופס. שדה שיישאר ריק יוצג בעברית כפי שנכתב למעלה.
+      התאריך, היום, השעות וסוג הפעילות מתורגמים אוטומטית.</p>
+    <div class="grid en">
+      <div><label>School name (line 1)</label><input id="e_s1" placeholder="State School"></div>
+      <div><label>School name (line 2)</label><input id="e_s2" placeholder="Henrietta Szold, Jerusalem"></div>
+      <div><label>Activity type</label><input id="e_atype" placeholder="a field trip"></div>
+      <div><label>Destination</label><input id="e_place" placeholder="Moon Grove"></div>
+      <div class="full"><label>Letter text</label>
+        <textarea id="e_body" placeholder="As part of our outdoor learning programme we will be going to Moon Grove on {day} {date}."></textarea>
+        <div class="note" style="margin-top:5px">You may use {day} {date} {hours} {place}.</div></div>
+      <div class="full"><label>Sign-off</label><input id="e_from" placeholder="Thank you, the Grade 3 teachers"></div>
+      <div class="full"><label>Notes for parents</label><input id="e_extra" placeholder="Please bring a hat, water and closed shoes."></div>
+    </div>
+  </details>
+  <div class="grid">
     <div class="full"><label>רשימת התלמידים באירוע — לצורך מעקב מי מילא ומי לא</label>
       <textarea id="roster" placeholder="יעל לוי&#10;דניאל כהן&#10;...">${esc(froster.join('\n'))}</textarea>
       <div class="row" style="margin-top:6px">
@@ -850,68 +937,95 @@ async function eventPage(eid, folderId, asAdmin){
 async function parentPage(eid, onBack){
   app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
   const ev = await Store.get('events/'+eid);
-  if(!ev){ app.innerHTML = `<div class="card"><h2>הקישור אינו תקין</h2><p class="sub">ייתכן שהאירוע נמחק. פנו למורה לקבלת קישור מעודכן.</p></div>`; return; }
+  let L = 'he';
+  try{ const sv = localStorage.getItem('slips_lang'); if(sv==='en'||sv==='he') L = sv; }catch(e){}
+  if(!ev){ const u=SLIP_UI[L];
+    app.innerHTML = `<div class="card"><h2>${esc(u.bad)}</h2><p class="sub">${esc(u.badSub)}</p></div>`; return; }
   ev._id = eid;
-  if(ev.closed){
-    app.innerHTML = `<div class="card"><h2>הטופס נסגר למילוי</h2><p class="sub">${esc(ev.atype)} · ${esc(heDate(ev.adate))}. פנו למורה.</p></div>`;
-    return;
+  if(ev.closed){ const u=SLIP_UI[L];
+    app.innerHTML = `<div class="card"><h2>${esc(u.closed)}</h2>
+      <p class="sub">${esc(atypeL(ev,L))} · ${esc(dateL(ev.adate,L))}. ${esc(u.closedSub)}</p></div>`; return; }
+
+  const draft = {child:'', cls:'', pname:'', phone:'', notes:''};
+  let sigPNG = null, agreed = false;
+
+  function render(){
+    const u = SLIP_UI[L], rtl = L!=='en';
+    const hours = (ev.t1&&ev.t2) ? u.hours(ev.t1, ev.t2) : '';
+    const extra = evText(ev,'extra',L), from = evText(ev,'from',L);
+    app.innerHTML = `<div id="swrap" dir="${rtl?'rtl':'ltr'}">
+      <div class="topbar"><div class="brand">${esc(L==='en'?evText(ev,'s1',L):ev.s1)}<small>${esc(L==='en'?evText(ev,'s2',L):ev.s2)}</small></div>
+        ${onBack?`<button class="btn ghost sm" id="back">${esc(u.back)}</button>`:''}
+        <span class="klang" role="group" aria-label="${esc(u.lang)}">
+          <button type="button" data-l="he" class="${L==='he'?'on':''}">עברית</button>
+          <button type="button" data-l="en" class="${L==='en'?'on':''}">English</button>
+        </span></div>
+      <div class="card">
+        <h2>${esc(u.title)} · ${esc(atypeL(ev,L))}</h2>
+        <div style="line-height:1.95">
+          <p style="margin:0 0 6px">${esc(u.dear)}</p>
+          ${evFellBack(ev,L)?`<p class="note" style="margin:0 0 4px">${esc(u.origHe)}</p>`:''}
+          <p style="margin:0 0 6px" dir="auto">${esc(letterBodyL(ev,L))}</p>
+          ${hours?`<p style="margin:0 0 6px">${esc(hours)}</p>`:''}
+          ${extra?`<p style="margin:0 0 6px" dir="auto">${esc(extra)}</p>`:''}
+          <p style="margin:12px 0 0" dir="auto">${esc(from)}</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>${esc(u.fill)}</h2>
+        <div class="grid">
+          <div><label>${esc(u.child)}</label><input id="child" placeholder="${esc(u.full)}" value="${esc(draft.child)}"></div>
+          <div><label>${esc(u.cls)}</label><input id="cls" value="${esc(draft.cls)}"></div>
+          <div><label>${esc(u.pname)}</label><input id="pname" placeholder="${esc(u.full)}" value="${esc(draft.pname)}"></div>
+          <div><label>${esc(u.phone)}</label><input id="phone" inputmode="tel" value="${esc(draft.phone)}"></div>
+          <div class="full"><label>${esc(u.notes)}</label><input id="notes" value="${esc(draft.notes)}"></div>
+        </div>
+        <h3>${esc(u.sigH)}</h3>
+        <div class="sigwrap"><canvas id="sig"></canvas><div class="sighint" id="sighint">${esc(u.sigHint)}</div></div>
+        <div class="row" style="margin-top:9px"><button class="btn ghost sm" id="clr">${esc(u.clr)}</button></div>
+        <div style="margin-top:16px" class="chk"><input type="checkbox" id="agree" ${agreed?'checked':''}>
+          <label for="agree" style="margin:0; color:var(--ink)">${esc(u.agree(atypeL(ev,L), placeL(ev,L), dayNameL(ev.adate,L), dateL(ev.adate,L)))}</label></div>
+        <div class="row mt"><button class="btn" id="submit">${esc(u.submit)}</button></div>
+        <div id="msg"></div>
+      </div></div>`;
+    if(onBack) $('#back').onclick = onBack;
+    setupSig();
+    if(sigPNG){ const img=new Image(); img.onload=()=>{ sctx.drawImage(img,0,0,scv.width/(window.devicePixelRatio||1), scv.height/(window.devicePixelRatio||1)); }; img.src=sigPNG; shas=true; const h=$('#sighint'); if(h) h.style.display='none'; }
+    $('#clr').onclick = () => { clearSig(); sigPNG=null; };
+
+    const keep = () => { draft.child=$('#child').value; draft.cls=$('#cls').value; draft.pname=$('#pname').value;
+      draft.phone=$('#phone').value; draft.notes=$('#notes').value; agreed=$('#agree').checked;
+      if(shas){ try{ sigPNG = sigData(); }catch(e){} } };
+
+    app.querySelectorAll('.klang button').forEach(b=>b.onclick=()=>{
+      if(b.dataset.l===L) return;
+      keep(); L=b.dataset.l;
+      try{ localStorage.setItem('slips_lang', L); }catch(e){}
+      render(); window.scrollTo({top:0});
+    });
+
+    $('#submit').onclick = async () => {
+      const msg = $('#msg');
+      const sub = {eventId:eid, folderId:ev.folderId,
+        child:norm($('#child').value), cls:norm($('#cls').value), pname:norm($('#pname').value),
+        phone:norm($('#phone').value), notes:norm($('#notes').value), lang:L, submittedAt:nowISO()};
+      if(!sub.child || !sub.pname) return msg.innerHTML=`<div class="err">${esc(u.eNames)}</div>`;
+      if(!shas) return msg.innerHTML=`<div class="err">${esc(u.eSig)}</div>`;
+      if(!$('#agree').checked) return msg.innerHTML=`<div class="err">${esc(u.eAgree)}</div>`;
+      msg.innerHTML=`<div class="note">${esc(u.sending)}</div>`;
+      sub.sig = sigData();
+      const sid = rid('s_'); sub._id = sid;
+      try{
+        const body = Object.assign({}, sub); delete body._id;
+        await Store.set('submissions/'+sid, body);
+      }catch(e){ return msg.innerHTML=`<div class="err">${esc(u.eFail)}</div>`; }
+      msg.innerHTML = `<div class="ok"><b>${esc(u.okTitle)}</b><br>${esc(u.okSub(sub.child))}
+        <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="mine">${esc(u.save)}</button></div></div>`;
+      $('#submit').disabled = true;
+      $('#mine').onclick = async () => { $('#mine').textContent='…'; try{ await downloadSlip(ev, sub); }catch(e){} $('#mine').textContent=u.save; };
+    };
   }
-  const hours = (ev.t1&&ev.t2)?`יציאה בשעה ${ev.t1}, חזרה משוערת בשעה ${ev.t2}.`:'';
-  app.innerHTML = `
-    <div class="topbar"><div class="brand">${esc(ev.s1)}<small>${esc(ev.s2)}</small></div>
-      ${onBack?'<button class="btn ghost sm" id="back">חזרה</button>':''}</div>
-    <div class="card">
-      <h2>אישור הורים · ${esc(ev.atype)}</h2>
-      <div style="line-height:1.95">
-        <p style="margin:0 0 6px">הורים יקרים,</p>
-        <p style="margin:0 0 6px">${esc(letterBody(ev))}</p>
-        ${hours?`<p style="margin:0 0 6px">${esc(hours)}</p>`:''}
-        ${ev.extra?`<p style="margin:0 0 6px">${esc(ev.extra)}</p>`:''}
-        <p style="margin:12px 0 0">${esc(ev.from)}</p>
-      </div>
-    </div>
-    <div class="card">
-      <h2>מילוי ואישור</h2>
-      <div class="grid">
-        <div><label>שם התלמיד/ה</label><input id="child" placeholder="שם מלא"></div>
-        <div><label>כיתה</label><input id="cls" placeholder="לדוגמה: ג'2"></div>
-        <div><label>שם ההורה</label><input id="pname" placeholder="שם מלא"></div>
-        <div><label>טלפון ליצירת קשר</label><input id="phone" inputmode="tel" placeholder="050-0000000"></div>
-        <div class="full"><label>הערות / רגישויות בריאותיות (לא חובה)</label><input id="notes"></div>
-      </div>
-      <h3>חתימת ההורה</h3>
-      <div class="sigwrap"><canvas id="sig"></canvas><div class="sighint" id="sighint">חתמו כאן באצבע או בעכבר</div></div>
-      <div class="row" style="margin-top:9px"><button class="btn ghost sm" id="clr">ניקוי החתימה</button></div>
-      <div style="margin-top:16px" class="chk"><input type="checkbox" id="agree">
-        <label for="agree" style="margin:0; color:var(--ink)">הנני מאשר/ת לבני / בתי לצאת ל${esc(ev.atype)}${ev.place?' ב'+esc(ev.place):''} ביום ${esc(dayName(ev.adate))} ${esc(heDate(ev.adate))}.</label></div>
-      <div class="row mt"><button class="btn" id="submit">יצירת האישור והגשה למורה</button></div>
-      <div id="msg"></div>
-    </div>`;
-  if(onBack) $('#back').onclick = onBack;
-  setupSig(); $('#clr').onclick = clearSig;
-  $('#submit').onclick = async () => {
-    const sub = {eventId:eid, folderId:ev.folderId,
-      child:norm($('#child').value), cls:norm($('#cls').value), pname:norm($('#pname').value),
-      phone:norm($('#phone').value), notes:norm($('#notes').value), submittedAt:nowISO()};
-    const msg = $('#msg');
-    if(!sub.child || !sub.pname) return msg.innerHTML='<div class="err">נא למלא את שם התלמיד/ה ואת שם ההורה.</div>';
-    if(!shas) return msg.innerHTML='<div class="err">נא לחתום במסגרת החתימה.</div>';
-    if(!$('#agree').checked) return msg.innerHTML='<div class="err">נא לסמן את תיבת האישור.</div>';
-    msg.innerHTML='<div class="note">מגיש…</div>';
-    sub.sig = sigData();
-    const sid = rid('s_'); sub._id = sid;
-    try{
-      const body = Object.assign({}, sub); delete body._id;
-      await Store.set('submissions/'+sid, body);
-    }catch(e){
-      return msg.innerHTML='<div class="err">ההגשה נכשלה. נסו שוב, או פנו למורה.</div>';
-    }
-    msg.innerHTML = `<div class="ok"><b>האישור הוגש למורה ✓</b><br>
-      התקבל בתיקיית הכיתה בשם ${esc(sub.child)}. אפשר גם לשמור עותק אישי.
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="mine">שמירת עותק PDF</button></div></div>`;
-    $('#submit').disabled = true;
-    $('#mine').onclick = async () => { $('#mine').textContent='…'; try{ await downloadSlip(ev, sub); }catch(e){} $('#mine').textContent='שמירת עותק PDF'; };
-  };
+  render();
 }
 
 /* ================================================================
