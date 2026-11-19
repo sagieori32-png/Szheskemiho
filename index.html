@@ -123,6 +123,28 @@ canvas#sig{width:100%; height:165px; display:block; touch-action:none; border-ra
 .sticky-submit{position:sticky; bottom:10px; z-index:5; box-shadow:0 6px 20px rgba(0,0,0,.12)}
 .done{text-align:center}
 .done-ic{font-size:44px}
+/* --- קהילה: בשביל הילדים שלנו --- */
+.kpart{border-inline-start:4px solid var(--accent); padding-inline-start:12px; margin-bottom:14px}
+.kpart h2{margin:0 0 4px}
+.kpart .ksub{color:var(--muted); font-size:14.5px; margin:0}
+.kgrid{display:grid; gap:9px; margin-top:10px}
+.kopt{display:flex; align-items:flex-start; gap:10px; border:1.5px solid var(--line); background:var(--card);
+      border-radius:11px; padding:12px 14px; cursor:pointer; font-size:15.5px; transition:border-color .12s, background .12s}
+.kopt:hover{border-color:var(--accent)}
+.kopt.on{border-color:var(--accent); background:var(--soft)}
+.kbox{flex:0 0 auto; width:21px; height:21px; border:2px solid var(--line); border-radius:6px; margin-top:1px;
+      display:flex; align-items:center; justify-content:center; font-size:14px; color:#fff; font-weight:700}
+.kopt.on .kbox{background:var(--accent); border-color:var(--accent)}
+.kpriv{background:var(--soft); border:1px solid var(--line); border-radius:11px; padding:13px 15px; margin-top:14px; font-size:14px}
+.kpriv b{display:block; margin-bottom:3px}
+.kresp{border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:11px; background:var(--card)}
+.kresp .kh{display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap}
+.kresp .kn{font-weight:700}
+.kresp .kq{font-size:12.5px; color:var(--muted); margin:9px 0 3px}
+.kresp .kt{white-space:pre-wrap; line-height:1.6}
+.kanon{background:var(--warnbg); border:1px solid var(--line); color:var(--warn); border-radius:10px; padding:10px 13px; font-size:13.5px; margin-bottom:14px}
+.kfold{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.kfold .main{margin-inline-end:auto}
 .donelist{display:grid; gap:8px; justify-items:center}
 .cchip{display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 8px; border-radius:999px; font-size:13.5px; font-weight:600;
   background:color-mix(in srgb,var(--c) 15%,var(--card)); border:1px solid color-mix(in srgb,var(--c) 45%,var(--line)); white-space:nowrap}
@@ -344,6 +366,8 @@ function sigData(){
   if(mc){ return studentPage(mc[1]); }
   const mg = location.hash.match(/[#&]g=([A-Za-z0-9_\-]+)/);
   if(mg){ return gvanimStudent(mg[1]); }
+  const mk = location.hash.match(/[#&]k=([A-Za-z0-9_\-]+)/);
+  if(mk){ return communityForm(mk[1]); }
   const cfg = await Store.get('app/config');
   if(!cfg || !cfg.bootstrapped) return setupPage();
   let saved=null; try{ saved = sessionStorage.getItem('slips_me'); }catch(e){}
@@ -434,6 +458,7 @@ async function adminPage(tab){
   tab = tab || 'teachers';
   if(tab==='committees') return adminCommittees();
   if(tab==='gvanim') return adminGvanim();
+  if(tab==='community') return adminCommunity();
   app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען נתונים…</div></div>`;
   bindOut();
   const [users, folders, events, subs] = await Promise.all([
@@ -479,6 +504,7 @@ async function adminPage(tab){
       <button data-tab="folders" class="${tab==='folders'?'on':''}">תיקיות</button>
       <button data-tab="committees">ועדות</button>
       <button data-tab="gvanim">גוונים</button>
+      <button data-tab="community">קהילה</button>
       <button data-tab="settings" class="${tab==='settings'?'on':''}">הגדרות</button>
     </div>
     ${tab==='teachers'?`
@@ -600,6 +626,7 @@ async function teacherPage(folderId, asAdmin){
   const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
 
   const froster = (folder && folder.roster) || [];
+  await kSetOn(folderId);
 
   app.innerHTML = header('תיקייה: '+((folder&&folder.name)||'—'), back) + modeBanner() + folderTabs('slips') + `
     <div class="card">
@@ -885,14 +912,23 @@ function folderTabs(on){
     <button data-ftab="slips" class="${on==='slips'?'on':''}">אישורי הורים</button>
     <button data-ftab="committees" class="${on==='committees'?'on':''}">ועדות תלמידים</button>
     <button data-ftab="gvanim" class="${on==='gvanim'?'on':''}">חוגי גוונים</button>
+    ${K_ON?`<button data-ftab="community" class="${on==='community'?'on':''}">בשביל הילדים שלנו 💛</button>`:''}
     ${(ME&&ME.gvanimAdmin)?`<button data-ftab="gadmin" class="${on==='gadmin'?'on':''}">ניהול גוונים · כל בית הספר</button>`:''}</div>`;
 }
 function bindFolderTabs(folderId, asAdmin){
   app.querySelectorAll('[data-ftab]').forEach(b=>b.onclick=()=>
     b.dataset.ftab==='committees' ? committeesTeacher(folderId, asAdmin)
     : b.dataset.ftab==='gvanim' ? gvanimTeacher(folderId, asAdmin)
+    : b.dataset.ftab==='community' ? communityTeacher(folderId, asAdmin)
     : b.dataset.ftab==='gadmin' ? adminGvanim(folderId)
     : teacherPage(folderId, asAdmin));
+}
+/* K_ON — האם טופס הקהילה הופעל לתיקייה שנפתחה כעת (נקבע ע"י משתמש העל) */
+let K_ON = false;
+async function kSetOn(folderId){
+  try{ const c = await getComm(); K_ON = !!(c.folders||[]).includes(folderId); }
+  catch(e){ K_ON = false; }
+  return K_ON;
 }
 function committeeCard(c, rank, clickable){
   return `<div class="ccard${rank?' picked':''}${clickable?' click':''}" style="--c:${cColor(c)}" data-cn="${esc(c.n)}" ${clickable?'role="button" tabindex="0"':''}>
@@ -1028,6 +1064,7 @@ async function committeesTeacher(folderId, asAdmin){
       <td><select class="asel" data-as="${esc(p._id)}">${options(p.assigned)}</select><div class="rk" style="margin-top:4px">${rankTag(p)}</div></td>
       <td><button class="btn dngr sm" data-delp="${esc(p._id)}" title="מחיקת הבחירה">✕</button></td></tr>`;
 
+  await kSetOn(folderId);
   app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('committees') + `
     <div class="card">
       <h2>קישור לתלמידי הכיתה</h2>
@@ -1172,7 +1209,8 @@ async function adminCommittees(){
   const tabsBar = `<div class="tabs">
       <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
       <button data-tab="committees" class="on">ועדות</button>
-      <button data-tab="gvanim">גוונים</button><button data-tab="settings">הגדרות</button></div>`;
+      <button data-tab="gvanim">גוונים</button><button data-tab="community">קהילה</button>
+      <button data-tab="settings">הגדרות</button></div>`;
   const overview = list.map(c=>{
     const kids = picks.filter(p=>String(p.assigned)===String(c.n));
     const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
@@ -1205,7 +1243,7 @@ async function adminCommittees(){
       <div id="msg"></div>
     </div>`;
   bindOut();
-  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():b.dataset.tab==='community'?adminCommunity():adminPage(b.dataset.tab));
   const collect = () => app.querySelectorAll('[data-f]').forEach(inp=>{ const c=list[+inp.dataset.i]; const v=inp.value.trim(); c[inp.dataset.f] = inp.dataset.f==='n' ? (isNaN(+v)||v===''?v:+v) : v; });
   const redraw = () => { $('#clist').innerHTML = list.map(editRow).join(''); bindRm(); };
   const bindRm = () => app.querySelectorAll('[data-rmc]').forEach(b=>b.onclick=()=>{ collect(); const c=list[+b.dataset.rmc];
@@ -1390,6 +1428,7 @@ async function gvanimTeacher(folderId, asAdmin){
       <td><select class="asel" data-as="${esc(p._id)}">${options(p.assigned)}</select><div class="rk" style="margin-top:4px">${rankTag(p)}</div></td>
       <td><button class="btn dngr sm" data-delp="${esc(p._id)}" title="מחיקת הבחירה">✕</button></td></tr>`;
 
+  await kSetOn(folderId);
   app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('gvanim') + `
     <div class="card">
       <h2>קישור לתלמידי הכיתה</h2>
@@ -1532,7 +1571,7 @@ async function adminGvanim(fromFolder){
   const tabsBar = isAdmin ? `<div class="tabs">
       <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
       <button data-tab="committees">ועדות</button><button data-tab="gvanim" class="on">גוונים</button>
-      <button data-tab="settings">הגדרות</button></div>` : folderTabs('gadmin');
+      <button data-tab="community">קהילה</button><button data-tab="settings">הגדרות</button></div>` : folderTabs('gadmin');
   const overview = list.map(c=>{
     const kids = picks.filter(p=>String(p.assigned)===String(c.n));
     const demand = picks.filter(p=>String(p.p1)===String(c.n)).length;
@@ -1584,7 +1623,7 @@ async function adminGvanim(fromFolder){
       : '<div class="empty">אין עדיין תיקיות.</div>'}
     </div>`;
   bindOut();
-  if(isAdmin) app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():adminPage(b.dataset.tab));
+  if(isAdmin) app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():b.dataset.tab==='community'?adminCommunity():adminPage(b.dataset.tab));
   else bindFolderTabs(fromFolder || ME.folderId, false);
   app.querySelectorAll('[data-of]').forEach(b=>b.onclick=()=>gvanimTeacher(b.dataset.of, isAdmin));
   app.querySelectorAll('[data-band]').forEach(s=>s.onchange=async()=>{
@@ -1622,6 +1661,344 @@ async function adminGvanim(fromFolder){
     try{ await saveFile('שיבוץ_גוונים_בית_הספר.pdf', await gvanimPdf({name:''}, list, picks.slice().sort((a,b)=>(a.child||'').localeCompare(b.child||'','he'))));
       $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
     catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
+  };
+}
+
+/* ================= בשביל הילדים שלנו — טופס קהילה אנונימי ================= */
+const K_DEFAULT = {
+  title:'בשביל הילדים שלנו 💛',
+  sub:'צרכים, יוזמות וערבות הדדית בקהילה הכיתתית',
+  intro:'אנחנו מאמינים שקהילה חזקה היא קהילה שבה רואים אחד את השני, מסייעים כשצריך ותורמים כל אחד בדרכו. נשמח לשמוע על צרכים שבהם נוכל לסייע, וגם על רעיונות ויוזמות שתרצו להוביל.',
+  aTitle:'חלק א׳ | רואים את כולם – צרכים ותמיכה',
+  aIntro:'חשוב לנו שכל ילד וילדה ירגישו שייכים ושיש מי שרואה אותם. אם יש צורך אישי, משפחתי, חברתי או אחר שבו הקהילה הכיתתית יכולה לסייע, נשמח שתשתפו.',
+  aQ:'באיזה תחום נדרש סיוע?',
+  aOpts:['סיוע בציוד או בצרכים חומריים','תמיכה בתקופת שירות מילואים של אחד ההורים','סיוע שפתי או לימודי','תמיכה חברתית או משפחתית','אחר'],
+  aFree:'נשמח שתפרטו בקצרה את הצורך (רק במידה שנוח לכם)',
+  aPriv:'המידע יועבר למחנכת בלבד. ככל שיעלה צורך בסיוע הוועד, הוא יוצג באופן אנונימי, ללא פרטים מזהים, ובתיאום עם המשפחה.',
+  bTitle:'חלק ב׳ | הורים יוזמים ותורמים',
+  bIntro:'לכל אחד ואחת מאיתנו יש משהו לתרום. נשמח לרתום את הכישורים, הידע והרעיונות שלכם לטובת הילדים והקהילה הכיתתית.',
+  bQ:'באילו דרכים תרצו לקחת חלק?',
+  bOpts:['העברת פעילות או סדנה לילדים','הרצאה או שיתוף בתחום ידע / עיסוק','סיוע בארגון אירועים ופעילויות','סיוע למשפחות או לילדים בקהילה הכיתתית','אחר'],
+  bFree:'נשמח לשמוע קצת על הרעיון או על הדרך שבה תרצו לתרום',
+  thanks:'תודה שאתם חלק מקהילה שאכפת לה! 💛',
+  sign:'ועד הכיתה',
+  folders:[]
+};
+async function getComm(){
+  let d=null; try{ d = await Store.get('comm/config'); }catch(e){}
+  const c = Object.assign({}, K_DEFAULT, d||{});
+  if(!Array.isArray(c.aOpts)||!c.aOpts.length) c.aOpts = K_DEFAULT.aOpts.slice();
+  if(!Array.isArray(c.bOpts)||!c.bOpts.length) c.bOpts = K_DEFAULT.bOpts.slice();
+  if(!Array.isArray(c.folders)) c.folders = [];
+  return c;
+}
+const today10 = () => new Date().toISOString().slice(0,10);
+
+/* ---------------- הטופס להורים (#k=folderId) — אנונימי לחלוטין ---------------- */
+async function communityForm(folderId, onBack){
+  app.innerHTML = `<div class="card"><div class="empty">טוען את הטופס…</div></div>`;
+  const [folder, c, cfg] = await Promise.all([Store.get('folders/'+folderId), getComm(), Store.get('app/config')]);
+  const back = onBack ? '<button class="btn ghost sm" id="back">חזרה</button>' : '';
+  if(!folder || !(c.folders||[]).includes(folderId)){
+    app.innerHTML = `<div class="topbar">${back}</div><div class="card"><h2>הטופס אינו פעיל</h2>
+      <p class="sub">ייתכן שהקישור אינו תקין או שהטופס נסגר. אפשר לפנות למחנכת.</p></div>`;
+    if(onBack) $('#back').onclick = onBack; return;
+  }
+  const A = new Set(), B = new Set();
+  const optsHtml = (arr, g) => arr.map((o,i)=>`<div class="kopt" data-g="${g}" data-i="${i}" role="button" tabindex="0">
+      <span class="kbox">✓</span><span>${esc(o)}</span></div>`).join('');
+
+  app.innerHTML = `
+    <div class="topbar">${back}</div>
+    <div class="hero">
+      <div class="hero-school">${esc((cfg&&cfg.org)||'')}${folder.name?' · '+esc(folder.name):''}</div>
+      <h1 class="hero-title">${esc(c.title)}</h1>
+      <div class="hero-sub">${esc(c.sub)}</div>
+    </div>
+    ${modeBanner()}
+    <div class="card"><p style="margin:0">${esc(c.intro)}</p>
+      <div class="kpriv" style="margin-top:14px"><b>הטופס אנונימי לחלוטין</b>
+        לא נשאלים כאן שם, טלפון או כל פרט מזהה אחר, והמערכת אינה שומרת אותם. אפשר למלא רק את אחד החלקים.</div>
+    </div>
+
+    <div class="card">
+      <div class="kpart"><h2>${esc(c.aTitle)}</h2><p class="ksub">${esc(c.aIntro)}</p></div>
+      <h3 style="margin:0 0 2px">${esc(c.aQ)}</h3>
+      <p class="note" style="margin:0">ניתן לבחור יותר מאפשרות אחת</p>
+      <div class="kgrid">${optsHtml(c.aOpts,'a')}</div>
+      <div style="margin-top:14px"><label>${esc(c.aFree)}</label><textarea id="ka" style="min-height:92px"></textarea></div>
+      <div class="kpriv"><b>הפרטיות שלכם חשובה לנו</b>${esc(c.aPriv)}</div>
+    </div>
+
+    <div class="card">
+      <div class="kpart"><h2>${esc(c.bTitle)}</h2><p class="ksub">${esc(c.bIntro)}</p></div>
+      <h3 style="margin:0 0 2px">${esc(c.bQ)}</h3>
+      <p class="note" style="margin:0">ניתן לבחור יותר מאפשרות אחת</p>
+      <div class="kgrid">${optsHtml(c.bOpts,'b')}</div>
+      <div style="margin-top:14px"><label>${esc(c.bFree)}</label><textarea id="kb" style="min-height:92px"></textarea></div>
+    </div>
+
+    <div class="card sticky-submit">
+      <div class="row"><button class="btn" id="ksend" style="flex:1">שליחת הטופס</button></div>
+      <p class="note" style="margin:10px 0 0">הטופס מיועד לאפשר מילוי של כל אחד מהחלקים בנפרד, ללא חובה למלא את שניהם.</p>
+      <div id="msg"></div>
+    </div>`;
+  if(onBack) $('#back').onclick = onBack;
+
+  app.querySelectorAll('.kopt').forEach(el=>{
+    const act = () => { const set = el.dataset.g==='a'?A:B, i=+el.dataset.i;
+      if(set.has(i)) set.delete(i); else set.add(i);
+      el.classList.toggle('on', set.has(i)); $('#msg').innerHTML=''; };
+    el.onclick = act; el.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } };
+  });
+
+  $('#ksend').onclick = async () => {
+    const ta = norm($('#ka').value), tb = norm($('#kb').value), msg = $('#msg');
+    if(!A.size && !B.size && !ta && !tb)
+      return msg.innerHTML='<div class="err">נא למלא לפחות אחד מהחלקים לפני השליחה.</div>';
+    msg.innerHTML='<div class="note">שולח…</div>'; $('#ksend').disabled = true;
+    try{
+      await Store.set('cresp/'+rid('k_'), {folderId,
+        aOpts:[...A].sort().map(i=>c.aOpts[i]), aText:ta,
+        bOpts:[...B].sort().map(i=>c.bOpts[i]), bText:tb,
+        day: today10()});
+    }catch(e){ $('#ksend').disabled=false; return msg.innerHTML='<div class="err">השליחה נכשלה. נסו שוב מאוחר יותר.</div>'; }
+    app.querySelector('.sticky-submit').remove();
+    window.scrollTo({top:0, behavior:'smooth'});
+    const done = document.createElement('div'); done.className='card done';
+    done.innerHTML = `<div class="done-ic">💛</div><h2>${esc(c.thanks)}</h2>
+      <p class="sub">הטופס נשלח בהצלחה, ללא פרטים מזהים.</p>
+      <p class="note">${esc(c.sign)}</p>`;
+    app.querySelector('.hero').after(done);
+  };
+}
+
+/* ---------------- לשונית המורה ---------------- */
+async function communityTeacher(folderId, asAdmin){
+  if(!folderId){ app.innerHTML = header('בשביל הילדים שלנו') + `<div class="card"><div class="empty">לא שויכה לך תיקייה. פנו למנהל המערכת.</div></div>`; return bindOut(); }
+  app.innerHTML = header('טוען…') + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const folder = await Store.get('folders/'+folderId) || {};
+  const c = await getComm();
+  await kSetOn(folderId);
+  const back = asAdmin ? `<button class="btn ghost sm" id="back">חזרה לניהול</button>` : '';
+  if(!K_ON){
+    app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + folderTabs('slips') +
+      `<div class="card"><h2>הטופס אינו פעיל בכיתה זו</h2>
+       <p class="sub">הפעלת הטופס נעשית על ידי מנהל המערכת.</p></div>`;
+    bindOut(); bindFolderTabs(folderId, asAdmin);
+    if(asAdmin) $('#back').onclick = () => adminPage('folders'); return;
+  }
+  const resp = (await Store.list('cresp','folderId',folderId)).sort((a,b)=>(a.day||'').localeCompare(b.day||''));
+  const link = location.origin + location.pathname + location.search + '#k=' + folderId;
+
+  app.innerHTML = header('תיקייה: '+(folder.name||'—'), back) + modeBanner() + folderTabs('community') + `
+    <div class="card">
+      <h2>${esc(c.title)}</h2>
+      <p class="sub">${esc(c.sub)}</p>
+      <div class="kanon"><b>הטופס אנונימי.</b> לא נאספים שמות או פרטי קשר, ולכן לא ניתן לדעת מי מילא. מוצג רק תאריך המילוי, ללא שעה.</div>
+      <div class="linkbox">
+        <code>${esc(link)}</code>
+        <div class="row"><button class="btn sm" id="copy">העתקת הקישור</button>
+          <button class="btn ghost sm" id="prev">תצוגה מקדימה</button></div>
+      </div>
+      <p class="note" style="margin-top:10px">שולחים את הקישור להורי הכיתה. כל פנייה שתתקבל דרכו תיכנס לתיקייה הזו בלבד.</p>
+    </div>
+    <div class="card">
+      <h2>פניות שהתקבלו · ${resp.length}</h2>
+      ${resp.length? resp.map((r,i)=>kRespHtml(r,i,c)).join('') : '<div class="empty">טרם התקבלו פניות.</div>'}
+      <div class="row mt">
+        <button class="btn" id="pdf" ${resp.length?'':'disabled'}>הורדת PDF</button>
+        <button class="btn ghost" id="csv" ${resp.length?'':'disabled'}>הורדת קובץ Excel (CSV)</button>
+        <button class="btn dngr" id="wipe" ${resp.length?'':'disabled'}>מחיקת כל הפניות</button>
+      </div><div id="emsg"></div>
+    </div>`;
+  bindOut(); bindFolderTabs(folderId, asAdmin);
+  if(asAdmin) $('#back').onclick = () => adminPage('folders');
+  $('#copy').onclick = async () => { try{ await navigator.clipboard.writeText(link); $('#copy').textContent='הועתק ✓'; }catch(e){ $('#copy').textContent='סמנו והעתיקו ידנית'; } };
+  $('#prev').onclick = () => communityForm(folderId, () => communityTeacher(folderId, asAdmin));
+  $('#csv').onclick = async () => { await saveFile(`קהילה_${(folder.name||'כיתה').replace(/\s+/g,'_')}.csv`, kCsv(resp, c)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; };
+  $('#pdf').onclick = async () => {
+    $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
+    try{ await saveFile(`קהילה_${(folder.name||'כיתה').replace(/\s+/g,'_')}.pdf`, await kPdf([{name:folder.name||'', resp}], c)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
+  };
+  $('#wipe').onclick = async () => {
+    if(!confirm('למחוק את כל הפניות בכיתה זו? הפעולה אינה הפיכה.')) return;
+    for(const r of resp) await Store.del('cresp/'+r._id);
+    communityTeacher(folderId, asAdmin);
+  };
+}
+
+function kRespHtml(r, i, c, cls){
+  const chips = arr => (arr||[]).map(x=>`<span class="cchip s" style="--c:var(--accent)">${esc(x)}</span>`).join(' ');
+  const hasA = (r.aOpts&&r.aOpts.length)||r.aText, hasB = (r.bOpts&&r.bOpts.length)||r.bText;
+  return `<div class="kresp">
+    <div class="kh"><span class="kn">פנייה ${i+1}</span>
+      ${cls?`<span class="tag no">${esc(cls)}</span>`:''}
+      <span class="note">${esc(r.day||'')}</span>
+      ${hasA?'<span class="tag rk1">צורך</span>':''}${hasB?'<span class="tag ok">יוזמה</span>':''}</div>
+    ${hasA?`<div class="kq">${esc(c.aQ)}</div><div>${chips(r.aOpts)||'<span class="note">—</span>'}</div>
+      ${r.aText?`<div class="kq">פירוט</div><div class="kt">${esc(r.aText)}</div>`:''}`:''}
+    ${hasB?`<div class="kq">${esc(c.bQ)}</div><div>${chips(r.bOpts)||'<span class="note">—</span>'}</div>
+      ${r.bText?`<div class="kq">פירוט</div><div class="kt">${esc(r.bText)}</div>`:''}`:''}
+  </div>`;
+}
+function kCsv(resp, c){
+  const rows = [['#','כיתה','תאריך','תחומי סיוע נדרשים','פירוט הצורך','דרכים לתרום','פירוט היוזמה']];
+  resp.forEach((r,i)=>rows.push([i+1, r.cls||'', r.day||'', (r.aOpts||[]).join(' | '), r.aText||'', (r.bOpts||[]).join(' | '), r.bText||'']));
+  return csvBlob(rows);
+}
+async function kPdf(groups, c){
+  const cfg = await Store.get('app/config') || {};
+  const el = document.getElementById('cprint');
+  const all = groups.reduce((n,g)=>n+g.resp.length,0);
+  const block = (r,i,cls) => {
+    const hasA=(r.aOpts&&r.aOpts.length)||r.aText, hasB=(r.bOpts&&r.bOpts.length)||r.bText;
+    return `<div class="pb" style="border-color:#1f5f4e; break-inside:avoid">
+      <div class="pbh" style="background:#1f5f4e">פנייה ${i+1}${cls?' · '+esc(cls):''} <span>${esc(r.day||'')}</span></div>
+      <div style="padding:8px 10px; font-size:13px; line-height:1.7">
+        ${hasA?`<div><b>${esc(c.aQ)}</b><br>${esc((r.aOpts||[]).join(' · ')||'—')}</div>
+          ${r.aText?`<div style="margin-top:4px"><b>פירוט:</b> ${esc(r.aText)}</div>`:''}`:''}
+        ${hasA&&hasB?'<hr style="border:0; border-top:1px dashed #bbb; margin:8px 0">':''}
+        ${hasB?`<div><b>${esc(c.bQ)}</b><br>${esc((r.bOpts||[]).join(' · ')||'—')}</div>
+          ${r.bText?`<div style="margin-top:4px"><b>פירוט:</b> ${esc(r.bText)}</div>`:''}`:''}
+      </div></div>`;
+  };
+  el.innerHTML = `
+    <div class="ph"><div><div class="po">${esc(cfg.org||'')}</div><h1>${esc(c.title)}</h1>
+      <div class="pm">${esc(c.sub)} · ${all} פניות · הופק ${esc(new Date().toLocaleDateString('he-IL'))}</div>
+      <div class="pm"><b>מסמך אנונימי</b> — אינו כולל שמות או פרטי קשר.</div></div></div>
+    ${groups.map(g=>`${groups.length>1?`<h2>${esc(g.name||'ללא כיתה')} — ${g.resp.length} פניות</h2>`:''}
+      <div class="pg">${g.resp.map((r,i)=>block(r,i,groups.length>1?g.name:'')).join('')}</div>`).join('')}`;
+  await new Promise(r=>setTimeout(r,80));
+  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff'});
+  const {jsPDF} = window.jspdf; const pdf = new jsPDF('p','mm','a4');
+  const pxPerPage = Math.floor(canvas.width * 297/210);
+  for(let y=0, first=true; y<canvas.height; y+=pxPerPage, first=false){
+    const h = Math.min(pxPerPage, canvas.height-y);
+    const part = document.createElement('canvas'); part.width = canvas.width; part.height = h;
+    const ctx = part.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,part.width,h); ctx.drawImage(canvas, 0, -y);
+    if(!first) pdf.addPage();
+    pdf.addImage(part.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,h*210/canvas.width);
+  }
+  return pdf.output('blob');
+}
+
+/* ---------------- ניהול: שיוך כיתות ועריכת הטופס ---------------- */
+async function adminCommunity(){
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + `<div class="card"><div class="empty">טוען…</div></div>`; bindOut();
+  const c = await getComm();
+  const [folders, resp] = await Promise.all([Store.list('folders'), Store.list('cresp')]);
+  folders.sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+  const fname = id => ((folders.find(f=>f._id===id)||{}).name)||'—';
+  const on = new Set(c.folders||[]);
+  const cntOf = id => resp.filter(r=>r.folderId===id).length;
+  const tabsBar = `<div class="tabs">
+      <button data-tab="teachers">מורים</button><button data-tab="folders">תיקיות</button>
+      <button data-tab="committees">ועדות</button><button data-tab="gvanim">גוונים</button>
+      <button data-tab="community" class="on">קהילה</button><button data-tab="settings">הגדרות</button></div>`;
+
+  app.innerHTML = header('ניהול מערכת') + modeBanner() + tabsBar + `
+    <div class="card">
+      <h2>${esc(c.title)}</h2>
+      <p class="sub">${esc(c.sub)} · טופס אנונימי לחלוטין</p>
+      <div class="kanon"><b>הטופס מופיע רק בכיתות שתסמנו כאן.</b> בכיתה שאינה מסומנת, לשונית הטופס אינה מוצגת למורה והקישור אינו פעיל.</div>
+      ${folders.length? folders.map(f=>`<div class="kfold">
+        <div class="main"><b>${esc(f.name)}</b>
+          <div class="note">${cntOf(f._id)} פניות התקבלו</div></div>
+        <span class="tag ${on.has(f._id)?'ok':'no'}">${on.has(f._id)?'פעיל':'כבוי'}</span>
+        <button class="btn ghost sm" data-kt="${esc(f._id)}">${on.has(f._id)?'כיבוי בכיתה זו':'הפעלה בכיתה זו'}</button>
+        ${on.has(f._id)?`<button class="btn ghost sm" data-kopen="${esc(f._id)}">פתיחת התיקייה</button>`:''}
+      </div>`).join('') : '<div class="empty">אין עדיין תיקיות.</div>'}
+      <div class="row mt">
+        <button class="btn ghost" id="allon">הפעלה בכל הכיתות</button>
+        <button class="btn ghost" id="alloff">כיבוי בכל הכיתות</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>כל הפניות · ${resp.length}</h2>
+      <p class="sub">תצוגה בית־ספרית, ללא פרטים מזהים.</p>
+      ${resp.length? resp.slice().sort((a,b)=>(a.day||'').localeCompare(b.day||''))
+          .map((r,i)=>kRespHtml(r,i,c,fname(r.folderId))).join('')
+        : '<div class="empty">טרם התקבלו פניות.</div>'}
+      <div class="row mt">
+        <button class="btn" id="allpdf" ${resp.length?'':'disabled'}>הורדת PDF מרוכז</button>
+        <button class="btn ghost" id="allcsv" ${resp.length?'':'disabled'}>הורדת CSV מרוכז</button>
+      </div><div id="emsg"></div>
+    </div>
+    <div class="card">
+      <h2>עריכת נוסח הטופס</h2>
+      <p class="sub">הנוסח משותף לכל הכיתות שבהן הטופס פעיל.</p>
+      <div class="grid">
+        <div><label>כותרת</label><input id="k_title" value="${esc(c.title)}"></div>
+        <div><label>כותרת משנה</label><input id="k_sub" value="${esc(c.sub)}"></div>
+        <div class="full"><label>פתיח</label><textarea id="k_intro">${esc(c.intro)}</textarea></div>
+      </div>
+      <h3>חלק א׳ — צרכים ותמיכה</h3>
+      <div class="grid">
+        <div class="full"><label>כותרת החלק</label><input id="k_aTitle" value="${esc(c.aTitle)}"></div>
+        <div class="full"><label>פתיח החלק</label><textarea id="k_aIntro">${esc(c.aIntro)}</textarea></div>
+        <div class="full"><label>השאלה</label><input id="k_aQ" value="${esc(c.aQ)}"></div>
+        <div class="full"><label>אפשרויות הבחירה (שורה לכל אפשרות)</label><textarea id="k_aOpts" style="min-height:110px">${esc((c.aOpts||[]).join('\n'))}</textarea></div>
+        <div class="full"><label>כותרת שדה הפירוט</label><input id="k_aFree" value="${esc(c.aFree)}"></div>
+        <div class="full"><label>הודעת הפרטיות</label><textarea id="k_aPriv">${esc(c.aPriv)}</textarea></div>
+      </div>
+      <h3>חלק ב׳ — יוזמות ותרומה</h3>
+      <div class="grid">
+        <div class="full"><label>כותרת החלק</label><input id="k_bTitle" value="${esc(c.bTitle)}"></div>
+        <div class="full"><label>פתיח החלק</label><textarea id="k_bIntro">${esc(c.bIntro)}</textarea></div>
+        <div class="full"><label>השאלה</label><input id="k_bQ" value="${esc(c.bQ)}"></div>
+        <div class="full"><label>אפשרויות הבחירה (שורה לכל אפשרות)</label><textarea id="k_bOpts" style="min-height:110px">${esc((c.bOpts||[]).join('\n'))}</textarea></div>
+        <div class="full"><label>כותרת שדה הפירוט</label><input id="k_bFree" value="${esc(c.bFree)}"></div>
+      </div>
+      <h3>סיום</h3>
+      <div class="grid">
+        <div><label>משפט התודה</label><input id="k_thanks" value="${esc(c.thanks)}"></div>
+        <div><label>חתימה</label><input id="k_sign" value="${esc(c.sign)}"></div>
+      </div>
+      <div class="row mt"><button class="btn" id="ksave">שמירת הנוסח</button>
+        <button class="btn ghost" id="kreset">שחזור נוסח ברירת המחדל</button></div>
+      <div id="msg"></div>
+    </div>`;
+  bindOut();
+  app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=> b.dataset.tab==='committees'?adminCommittees():b.dataset.tab==='gvanim'?adminGvanim():b.dataset.tab==='community'?adminCommunity():adminPage(b.dataset.tab));
+  app.querySelectorAll('[data-kopen]').forEach(b=>b.onclick=()=>communityTeacher(b.dataset.kopen, true));
+
+  const saveCfg = async patch => { const cur = await getComm(); await Store.set('comm/config', Object.assign({}, cur, patch, {updatedAt:nowISO()})); };
+  app.querySelectorAll('[data-kt]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.kt; const list = new Set(c.folders||[]);
+    list.has(id) ? list.delete(id) : list.add(id);
+    await saveCfg({folders:[...list]}); adminCommunity();
+  });
+  $('#allon').onclick = async () => { await saveCfg({folders: folders.map(f=>f._id)}); adminCommunity(); };
+  $('#alloff').onclick = async () => { if(!confirm('לכבות את הטופס בכל הכיתות? הפניות שכבר התקבלו יישמרו.')) return; await saveCfg({folders:[]}); adminCommunity(); };
+  $('#allcsv').onclick = async () => {
+    const rows = [['#','כיתה','תאריך','תחומי סיוע נדרשים','פירוט הצורך','דרכים לתרום','פירוט היוזמה']];
+    resp.forEach((r,i)=>rows.push([i+1, fname(r.folderId), r.day||'', (r.aOpts||[]).join(' | '), r.aText||'', (r.bOpts||[]).join(' | '), r.bText||'']));
+    await saveFile('קהילה_בית_הספר.csv', csvBlob(rows));
+  };
+  $('#allpdf').onclick = async () => {
+    $('#emsg').innerHTML='<div class="note">מייצר PDF…</div>';
+    const groups = folders.map(f=>({name:f.name, resp:resp.filter(r=>r.folderId===f._id)})).filter(g=>g.resp.length);
+    try{ await saveFile('קהילה_בית_הספר.pdf', await kPdf(groups, c)); $('#emsg').innerHTML='<div class="ok">הקובץ הורד ✓</div>'; }
+    catch(e){ $('#emsg').innerHTML='<div class="err">יצירת הקובץ נכשלה. נסו שוב.</div>'; }
+  };
+  $('#ksave').onclick = async () => {
+    const g = id => norm($('#k_'+id).value), t = id => $('#k_'+id).value.trim();
+    const aOpts = t('aOpts').split('\n').map(norm).filter(Boolean);
+    const bOpts = t('bOpts').split('\n').map(norm).filter(Boolean);
+    if(!aOpts.length || !bOpts.length) return $('#msg').innerHTML='<div class="err">בכל חלק צריכה להיות לפחות אפשרות אחת.</div>';
+    await saveCfg({title:g('title'), sub:g('sub'), intro:t('intro'),
+      aTitle:g('aTitle'), aIntro:t('aIntro'), aQ:g('aQ'), aOpts, aFree:g('aFree'), aPriv:t('aPriv'),
+      bTitle:g('bTitle'), bIntro:t('bIntro'), bQ:g('bQ'), bOpts, bFree:g('bFree'),
+      thanks:g('thanks'), sign:g('sign')});
+    $('#msg').innerHTML='<div class="ok">הנוסח נשמר ✓</div>';
+  };
+  $('#kreset').onclick = async () => {
+    if(!confirm('לשחזר את נוסח ברירת המחדל? שיוך הכיתות יישמר.')) return;
+    const keep = (await getComm()).folders||[];
+    await Store.set('comm/config', Object.assign({}, K_DEFAULT, {folders:keep, updatedAt:nowISO()}));
+    adminCommunity();
   };
 }
 
